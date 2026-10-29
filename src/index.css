@@ -6,6 +6,12 @@
     --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   }
 
+  html, body, #root {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
   body {
     font-family: var(--font-sans);
     color: #171717;

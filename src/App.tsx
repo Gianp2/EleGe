@@ -257,13 +257,12 @@ export default function App() {
         />
 
         {/* Viewport Scrolleable */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 pb-20 lg:pb-8">
-          <div className="max-w-6xl mx-auto">
+        <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 pb-[calc(108px+env(safe-area-inset-bottom,0px))] lg:pb-8">
+          <div className="max-w-6xl min-w-0 w-full mx-auto">
             {activeTab === 'dashboard' && (
               <DashboardView
                 kpis={kpis}
                 pedidos={pedidos}
-                onOpenScanner={() => setIsScannerOpen(true)}
                 onNewOrder={() => {
                   setClientePreseleccionado(null);
                   setIsNewOrderOpen(true);
@@ -312,6 +311,17 @@ export default function App() {
             )}
           </div>
         </main>
+
+        {/* Acceso QR móvil: usa el escáner existente, sin duplicar la lógica. */}
+        <button
+          type="button"
+          aria-label="Escanear código QR"
+          title="Escanear código QR"
+          onClick={() => setIsScannerOpen(true)}
+          className="lg:hidden fixed right-4 bottom-[calc(94px+env(safe-area-inset-bottom,0px))] z-50 flex h-14 w-14 items-center justify-center rounded-full bg-neutral-950 text-emerald-400 shadow-lg ring-1 ring-white/20 transition-colors hover:bg-neutral-800 active:bg-neutral-700 no-print"
+        >
+          <QrCode className="h-7 w-7" aria-hidden="true" />
+        </button>
 
         {/* Barra de Navegación Móvil */}
         <BottomNav

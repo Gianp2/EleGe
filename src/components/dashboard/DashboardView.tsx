@@ -4,7 +4,6 @@ import {
   Clock,
   CheckCircle2,
   DollarSign,
-  QrCode,
   Plus,
   ArrowRight,
   TrendingUp,
@@ -18,7 +17,6 @@ import { storage } from '../../services/storage';
 interface DashboardViewProps {
   kpis: ResumenKPIs;
   pedidos: Pedido[];
-  onOpenScanner: () => void;
   onNewOrder: () => void;
   onSelectOrder: (pedido: Pedido) => void;
   onGoToPedidos: (filtroEstado?: any) => void;
@@ -28,7 +26,6 @@ interface DashboardViewProps {
 export const DashboardView: React.FC<DashboardViewProps> = ({
   kpis,
   pedidos,
-  onOpenScanner,
   onNewOrder,
   onSelectOrder,
   onGoToPedidos,
@@ -47,11 +44,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     .slice(0, 6);
 
   return (
-    <div className="space-y-6">
+    <div className="w-full min-w-0 max-w-full space-y-5 sm:space-y-6">
       {/* TARJETA HERO OPERATIVA: ACCIONES PRINCIPALES */}
-      <div className="p-5 sm:p-6 rounded-2xl bg-white border border-neutral-200 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
+      <div className="min-w-0 p-4 sm:p-6 rounded-2xl bg-white border border-neutral-200 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="min-w-0 space-y-1">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-md bg-neutral-100 text-neutral-700 border border-neutral-200">
               Operaciones del Día
             </span>
@@ -71,20 +68,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
-          <button
-            type="button"
-            onClick={onOpenScanner}
-            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-semibold bg-neutral-100 hover:bg-neutral-200 text-neutral-800 border border-neutral-300 rounded-xl transition-all shadow-2xs cursor-pointer group"
-          >
-            <QrCode className="w-4 h-4 text-emerald-600 group-hover:scale-110 transition-transform" />
-            <span>Escanear Prenda (QR)</span>
-          </button>
-
+        <div className="flex flex-wrap items-center gap-2.5 w-full min-w-0 md:w-auto">
           <button
             type="button"
             onClick={onNewOrder}
-            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold bg-neutral-900 hover:bg-neutral-800 text-white rounded-xl transition-all shadow-xs cursor-pointer active:scale-98"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold bg-neutral-900 hover:bg-neutral-800 text-white rounded-xl transition-all shadow-xs cursor-pointer active:scale-98"
           >
             <Plus className="w-4 h-4 stroke-[2.5]" />
             <span>Nuevo Pedido</span>
@@ -93,53 +81,53 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       </div>
 
       {/* STRIP DE KPIS PRINCIPALES */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+      <div className="grid min-w-0 grid-cols-2 lg:grid-cols-5 gap-3">
         {/* KPI 1: Pedidos Hoy */}
-        <div className="p-4 rounded-2xl bg-white border border-neutral-200 shadow-xs space-y-1">
-          <div className="flex items-center justify-between text-neutral-500">
-            <span className="text-xs font-semibold">Pedidos Hoy</span>
-            <Shirt className="w-4 h-4 text-neutral-400" />
+        <div className="min-w-0 p-3 sm:p-4 rounded-2xl bg-white border border-neutral-200 shadow-xs space-y-1">
+          <div className="flex items-start justify-between gap-2 text-neutral-500">
+            <span className="min-w-0 text-xs font-semibold break-words">Pedidos Hoy</span>
+            <Shirt className="w-4 h-4 shrink-0 text-neutral-400" />
           </div>
-          <div className="text-2xl font-extrabold text-neutral-900 font-mono tabular-nums">{kpis.pedidosHoy}</div>
+          <div className="text-xl sm:text-2xl font-extrabold break-words [overflow-wrap:anywhere] text-neutral-900 font-mono tabular-nums">{kpis.pedidosHoy}</div>
           <div className="text-[11px] text-neutral-500">Recibidos en el turno</div>
         </div>
 
         {/* KPI 2: Prendas en Proceso */}
         <div
           onClick={() => onGoToPedidos('en_proceso')}
-          className="p-4 rounded-2xl bg-white hover:bg-sky-50/50 border border-neutral-200 hover:border-sky-300 shadow-xs transition-colors cursor-pointer space-y-1"
+          className="min-w-0 p-3 sm:p-4 rounded-2xl bg-white hover:bg-sky-50/50 border border-neutral-200 hover:border-sky-300 shadow-xs transition-colors cursor-pointer space-y-1"
         >
-          <div className="flex items-center justify-between text-neutral-500">
-            <span className="text-xs font-semibold">En Lavado / Planchado</span>
-            <Clock className="w-4 h-4 text-sky-600" />
+          <div className="flex items-start justify-between gap-2 text-neutral-500">
+            <span className="min-w-0 text-xs font-semibold break-words">En Lavado / Planchado</span>
+            <Clock className="w-4 h-4 shrink-0 text-sky-600" />
           </div>
-          <div className="text-2xl font-extrabold text-sky-700 font-mono tabular-nums">{kpis.prendasEnProceso}</div>
+          <div className="text-xl sm:text-2xl font-extrabold break-words [overflow-wrap:anywhere] text-sky-700 font-mono tabular-nums">{kpis.prendasEnProceso}</div>
           <div className="text-[11px] text-neutral-500">Prendas en máquinas</div>
         </div>
 
         {/* KPI 3: Listas para Retirar */}
         <div
           onClick={() => onGoToPedidos('listo')}
-          className="p-4 rounded-2xl bg-white hover:bg-emerald-50/50 border border-neutral-200 hover:border-emerald-300 shadow-xs transition-colors cursor-pointer space-y-1"
+          className="min-w-0 p-3 sm:p-4 rounded-2xl bg-white hover:bg-emerald-50/50 border border-neutral-200 hover:border-emerald-300 shadow-xs transition-colors cursor-pointer space-y-1"
         >
-          <div className="flex items-center justify-between text-neutral-500">
-            <span className="text-xs font-semibold">Listas p/ Retiro</span>
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+          <div className="flex items-start justify-between gap-2 text-neutral-500">
+            <span className="min-w-0 text-xs font-semibold break-words">Listas p/ Retiro</span>
+            <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
           </div>
-          <div className="text-2xl font-extrabold text-emerald-700 font-mono tabular-nums">{kpis.prendasListas}</div>
+          <div className="text-xl sm:text-2xl font-extrabold break-words [overflow-wrap:anywhere] text-emerald-700 font-mono tabular-nums">{kpis.prendasListas}</div>
           <div className="text-[11px] text-neutral-500">Listas para el cliente</div>
         </div>
 
         {/* KPI 4: Ingresos Hoy */}
         <div
           onClick={onGoToCaja}
-          className="p-4 rounded-2xl bg-white hover:bg-neutral-50 border border-neutral-200 hover:border-neutral-300 shadow-xs transition-colors cursor-pointer space-y-1"
+          className="min-w-0 p-3 sm:p-4 rounded-2xl bg-white hover:bg-neutral-50 border border-neutral-200 hover:border-neutral-300 shadow-xs transition-colors cursor-pointer space-y-1"
         >
-          <div className="flex items-center justify-between text-neutral-500">
-            <span className="text-xs font-semibold">Caja de Hoy</span>
-            <DollarSign className="w-4 h-4 text-neutral-800" />
+          <div className="flex items-start justify-between gap-2 text-neutral-500">
+            <span className="min-w-0 text-xs font-semibold break-words">Caja de Hoy</span>
+            <DollarSign className="w-4 h-4 shrink-0 text-neutral-800" />
           </div>
-          <div className="text-2xl font-extrabold text-neutral-900 font-mono tabular-nums">
+          <div className="text-xl sm:text-2xl font-extrabold break-words [overflow-wrap:anywhere] text-neutral-900 font-mono tabular-nums">
             {formatMoneda(kpis.ingresosHoy)}
           </div>
           <div className="text-[11px] text-neutral-500">Pagos y señas recibidos</div>
@@ -148,13 +136,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         {/* KPI 5: Saldo por Cobrar */}
         <div
           onClick={onGoToCaja}
-          className="p-4 rounded-2xl bg-white hover:bg-amber-50/50 border border-neutral-200 hover:border-amber-300 shadow-xs transition-colors cursor-pointer space-y-1 col-span-2 lg:col-span-1"
+          className="min-w-0 p-3 sm:p-4 rounded-2xl bg-white hover:bg-amber-50/50 border border-neutral-200 hover:border-amber-300 shadow-xs transition-colors cursor-pointer space-y-1 col-span-2 lg:col-span-1"
         >
-          <div className="flex items-center justify-between text-neutral-500">
-            <span className="text-xs font-semibold">Saldos por Cobrar</span>
-            <TrendingUp className="w-4 h-4 text-amber-600" />
+          <div className="flex items-start justify-between gap-2 text-neutral-500">
+            <span className="min-w-0 text-xs font-semibold break-words">Saldos por Cobrar</span>
+            <TrendingUp className="w-4 h-4 shrink-0 text-amber-600" />
           </div>
-          <div className="text-2xl font-extrabold text-amber-700 font-mono tabular-nums">
+          <div className="text-xl sm:text-2xl font-extrabold break-words [overflow-wrap:anywhere] text-amber-700 font-mono tabular-nums">
             {formatMoneda(kpis.totalSaldoPorCobrar)}
           </div>
           <div className="text-[11px] text-neutral-500">Deudas en pedidos activos</div>
@@ -162,13 +150,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       </div>
 
       {/* SECCIÓN DOBLE: PENDIENTES DE RETIRO + PEDIDOS RECIENTES */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid min-w-0 grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Columna Izquierda: Pedidos Listos para Retiro Inmediato */}
-        <div className="p-5 rounded-2xl bg-white border border-neutral-200 shadow-xs space-y-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-bold text-neutral-900 flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+        <div className="min-w-0 p-3 sm:p-5 rounded-2xl bg-white border border-neutral-200 shadow-xs space-y-3">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <h3 className="text-sm font-bold text-neutral-900 flex items-center gap-2 min-w-0 flex-wrap">
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
                 Listos para Retirar ({pedidosListosRetiro.length})
               </h3>
               <p className="text-xs text-neutral-500 mt-0.5">
@@ -178,7 +166,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <button
               type="button"
               onClick={() => onGoToPedidos('listo')}
-              className="text-xs font-semibold text-neutral-600 hover:text-neutral-900 flex items-center gap-1 hover:underline cursor-pointer"
+              className="shrink-0 text-xs font-semibold text-neutral-600 hover:text-neutral-900 inline-flex items-center gap-1 hover:underline cursor-pointer"
             >
               Ver todos <ArrowRight className="w-3 h-3" />
             </button>
@@ -199,14 +187,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   <div
                     key={ped.id}
                     onClick={() => onSelectOrder(ped)}
-                    className="p-3.5 rounded-xl bg-neutral-50/70 hover:bg-neutral-100/90 border border-neutral-200/80 transition-all flex items-center justify-between gap-3 cursor-pointer group"
+                    className="min-w-0 p-3 sm:p-3.5 rounded-xl bg-neutral-50/70 hover:bg-neutral-100/90 border border-neutral-200/80 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 cursor-pointer group"
                   >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
+                    <div className="min-w-0 w-full flex-1 space-y-1">
+                      <div className="flex flex-wrap items-center gap-2 min-w-0">
                         <span className="font-mono font-extrabold text-neutral-900 text-xs group-hover:text-amber-700 transition-colors">
                           {ped.codigoVisible}
                         </span>
-                        <span className="text-xs font-bold text-neutral-900">
+                        <span className="min-w-0 break-words text-xs font-bold text-neutral-900">
                           {cliente ? `${cliente.nombre} ${cliente.apellido}` : 'Cliente'}
                         </span>
                         {yaAvisado && (
@@ -215,14 +203,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           </span>
                         )}
                       </div>
-                      <div className="text-xs text-neutral-600 truncate">
+                      <div className="text-xs text-neutral-600 break-words [overflow-wrap:anywhere]">
                         {ped.prendas.length} prenda(s): {ped.prendas.map((p) => p.tipo).join(', ')}
                       </div>
                     </div>
 
-                    <div className="text-right shrink-0">
+                    <div className="w-full min-w-0 text-left sm:text-right sm:w-auto sm:shrink-0">
                       {tieneSaldo ? (
-                        <div className="text-xs font-mono font-bold text-amber-700">
+                        <div className="text-xs font-mono font-bold text-amber-700 break-words [overflow-wrap:anywhere]">
                           Cobrar {formatMoneda(ped.saldoPendiente)}
                         </div>
                       ) : (
@@ -230,7 +218,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           Abonado
                         </div>
                       )}
-                      <div className="text-[11px] text-neutral-500 font-mono">
+                      <div className="text-[11px] text-neutral-500 font-mono break-words [overflow-wrap:anywhere]">
                         Total {formatMoneda(ped.total)}
                       </div>
                     </div>
@@ -242,11 +230,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         {/* Columna Derecha: Pedidos Recientes */}
-        <div className="p-5 rounded-2xl bg-white border border-neutral-200 shadow-xs space-y-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-bold text-neutral-900 flex items-center gap-2">
-                <Clock className="w-4 h-4 text-neutral-500" />
+        <div className="min-w-0 p-3 sm:p-5 rounded-2xl bg-white border border-neutral-200 shadow-xs space-y-3">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <h3 className="text-sm font-bold text-neutral-900 flex items-center gap-2 min-w-0 flex-wrap">
+                <Clock className="w-4 h-4 shrink-0 text-neutral-500" />
                 Últimos Pedidos Recibidos
               </h3>
               <p className="text-xs text-neutral-500 mt-0.5">
@@ -256,7 +244,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <button
               type="button"
               onClick={() => onGoToPedidos('todos')}
-              className="text-xs font-semibold text-neutral-600 hover:text-neutral-900 flex items-center gap-1 hover:underline cursor-pointer"
+              className="shrink-0 text-xs font-semibold text-neutral-600 hover:text-neutral-900 inline-flex items-center gap-1 hover:underline cursor-pointer"
             >
               Ver todos <ArrowRight className="w-3 h-3" />
             </button>
@@ -270,7 +258,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <div
                   key={ped.id}
                   onClick={() => onSelectOrder(ped)}
-                  className="p-3.5 rounded-xl bg-neutral-50/70 hover:bg-neutral-100/90 border border-neutral-200/80 transition-all flex items-center justify-between gap-3 cursor-pointer group"
+                  className="min-w-0 p-3 sm:p-3.5 rounded-xl bg-neutral-50/70 hover:bg-neutral-100/90 border border-neutral-200/80 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 cursor-pointer group"
                 >
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
@@ -278,20 +266,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         {ped.codigoVisible}
                       </span>
                       <StatusBadge tipo="pedido" estado={ped.estadoGeneral} size="sm" />
-                      <span className="text-xs font-semibold text-neutral-800">
+                      <span className="min-w-0 break-words text-xs font-semibold text-neutral-800">
                         {cliente ? `${cliente.nombre} ${cliente.apellido}` : 'Cliente'}
                       </span>
                     </div>
-                    <div className="text-xs text-neutral-500">
+                    <div className="text-xs text-neutral-500 break-words">
                       Entrega estimada: {formatFechaCorta(ped.fechaEstimadaEntrega)}
                     </div>
                   </div>
 
-                  <div className="text-right shrink-0">
-                    <div className="text-xs font-mono font-bold text-neutral-900">
+                  <div className="w-full min-w-0 text-left sm:text-right sm:w-auto sm:shrink-0">
+                    <div className="text-xs font-mono font-bold text-neutral-900 break-words [overflow-wrap:anywhere]">
                       {formatMoneda(ped.total)}
                     </div>
-                    <div className="text-[11px] font-mono text-neutral-500">
+                    <div className="text-[11px] font-mono text-neutral-500 break-words [overflow-wrap:anywhere]">
                       {ped.saldoPendiente > 0 ? (
                         <span className="text-amber-700 font-semibold">Resta: {formatMoneda(ped.saldoPendiente)}</span>
                       ) : (
