@@ -1,0 +1,295 @@
+{
+  "entities": {
+    "Cliente": {
+      "title": "Cliente",
+      "description": "Cliente registrado en Lavadero eLeGe con QR permanente y datos de contacto.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Identificador único de cliente (ej: CLI-101)",
+          "maxLength": 64
+        },
+        "nombre": {
+          "type": "string",
+          "description": "Nombre de pila del cliente",
+          "maxLength": 100
+        },
+        "apellido": {
+          "type": "string",
+          "description": "Apellido del cliente (opcional para altas rápidas)",
+          "maxLength": 100
+        },
+        "telefono": {
+          "type": "string",
+          "description": "Número de teléfono o WhatsApp",
+          "maxLength": 30
+        },
+        "observaciones": {
+          "type": "string",
+          "description": "Preferencias de lavado, alergias o notas",
+          "maxLength": 500
+        },
+        "fechaAlta": {
+          "type": "string",
+          "description": "Fecha y hora de alta en formato ISO 8601"
+        },
+        "qrPayload": {
+          "type": "string",
+          "description": "Payload codificado para el código QR permanente"
+        }
+      },
+      "required": ["id", "nombre", "telefono", "fechaAlta", "qrPayload"]
+    },
+    "Pedido": {
+      "title": "Pedido",
+      "description": "Orden de servicio de lavandería con prendas, estado y pagos.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Identificador único del pedido (ej: PED-2401)",
+          "maxLength": 64
+        },
+        "codigoVisible": {
+          "type": "string",
+          "description": "Código corto para tickets y clientes (ej: #2401)",
+          "maxLength": 20
+        },
+        "clienteId": {
+          "type": "string",
+          "description": "ID del cliente titular",
+          "maxLength": 64
+        },
+        "fechaRecepcion": {
+          "type": "string",
+          "description": "Fecha y hora de ingreso ISO 8601"
+        },
+        "fechaEstimadaEntrega": {
+          "type": "string",
+          "description": "Fecha estimada de retiro (YYYY-MM-DD)"
+        },
+        "total": {
+          "type": "number",
+          "description": "Importe total del pedido"
+        },
+        "saldoPendiente": {
+          "type": "number",
+          "description": "Saldo remanente por cobrar"
+        },
+        "estadoPago": {
+          "type": "string",
+          "description": "Estado contable del pedido",
+          "enum": ["pendiente", "parcial", "pagado"]
+        },
+        "estadoGeneral": {
+          "type": "string",
+          "description": "Estado operativo del pedido",
+          "enum": ["recibido", "en_proceso", "listo", "entregado", "cancelado"]
+        },
+        "qrPayload": {
+          "type": "string",
+          "description": "Payload codificado para el código QR del pedido"
+        }
+      },
+      "required": ["id", "codigoVisible", "clienteId", "fechaRecepcion", "fechaEstimadaEntrega", "total", "saldoPendiente", "estadoPago", "estadoGeneral", "qrPayload"]
+    },
+    "Prenda": {
+      "title": "Prenda",
+      "description": "Prenda individual asociada a un pedido con seguimiento de estado y QR.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Identificador de prenda (ej: PRN-2401-1)",
+          "maxLength": 64
+        },
+        "pedidoId": {
+          "type": "string",
+          "description": "ID del pedido al que pertenece",
+          "maxLength": 64
+        },
+        "clienteId": {
+          "type": "string",
+          "description": "ID del cliente dueño de la prenda",
+          "maxLength": 64
+        },
+        "tipo": {
+          "type": "string",
+          "description": "Tipo de prenda (ej: Camisa, Pantalón)",
+          "maxLength": 100
+        },
+        "descripcion": {
+          "type": "string",
+          "description": "Color, detalles y marca",
+          "maxLength": 200
+        },
+        "servicio": {
+          "type": "string",
+          "description": "Tipo de servicio a realizar",
+          "maxLength": 50
+        },
+        "precio": {
+          "type": "number",
+          "description": "Precio unitario del servicio"
+        },
+        "estado": {
+          "type": "string",
+          "description": "Estado actual de la prenda",
+          "enum": ["recibido", "en_proceso", "listo", "entregado"]
+        },
+        "qrPayload": {
+          "type": "string",
+          "description": "Payload codificado del QR de la prenda"
+        }
+      },
+      "required": ["id", "pedidoId", "clienteId", "tipo", "servicio", "precio", "estado", "qrPayload"]
+    },
+    "Pago": {
+      "title": "Pago",
+      "description": "Registro contable de seña o cobro asociado a un pedido.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Identificador de pago (ej: PAG-1001)",
+          "maxLength": 64
+        },
+        "pedidoId": {
+          "type": "string",
+          "description": "ID del pedido",
+          "maxLength": 64
+        },
+        "clienteId": {
+          "type": "string",
+          "description": "ID del cliente",
+          "maxLength": 64
+        },
+        "monto": {
+          "type": "number",
+          "description": "Importe cobrado"
+        },
+        "metodo": {
+          "type": "string",
+          "description": "Método de pago",
+          "enum": ["efectivo", "transferencia", "debito", "credito", "otro"]
+        },
+        "fecha": {
+          "type": "string",
+          "description": "Fecha del movimiento ISO 8601"
+        }
+      },
+      "required": ["id", "pedidoId", "clienteId", "monto", "metodo", "fecha"]
+    },
+    "AvisoWhatsApp": {
+      "title": "AvisoWhatsApp",
+      "description": "Historial de mensajes de notificación enviados al cliente.",
+      "type": "object",
+      "properties": {
+        "pedidoId": {
+          "type": "string",
+          "description": "ID del pedido notificado",
+          "maxLength": 64
+        },
+        "clienteId": {
+          "type": "string",
+          "description": "ID del cliente notificado",
+          "maxLength": 64
+        },
+        "telefono": {
+          "type": "string",
+          "description": "Teléfono al que se envió",
+          "maxLength": 30
+        },
+        "mensaje": {
+          "type": "string",
+          "description": "Texto del aviso enviado",
+          "maxLength": 1000
+        },
+        "fecha": {
+          "type": "string",
+          "description": "Fecha del envío ISO 8601"
+        }
+      },
+      "required": ["pedidoId", "clienteId", "telefono", "mensaje", "fecha"]
+    },
+    "Configuracion": {
+      "title": "Configuracion",
+      "description": "Parámetros comerciales y de impresión del lavadero.",
+      "type": "object",
+      "properties": {
+        "nombreComercio": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "telefono": {
+          "type": "string",
+          "maxLength": 30
+        },
+        "formatoTicketDefecto": {
+          "type": "string",
+          "enum": ["80mm", "58mm"]
+        }
+      },
+      "required": ["nombreComercio", "telefono", "formatoTicketDefecto"]
+    },
+    "Auditoria": {
+      "title": "Auditoria",
+      "description": "Registro inmutable de trazabilidad de operaciones críticas en el sistema.",
+      "type": "object",
+      "properties": {
+        "accion": {
+          "type": "string",
+          "maxLength": 50
+        },
+        "entidad": {
+          "type": "string",
+          "maxLength": 50
+        },
+        "entidadId": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "detalles": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "usuarioUid": {
+          "type": "string",
+          "maxLength": 128
+        }
+      },
+      "required": ["accion", "entidad", "entidadId", "detalles", "usuarioUid"]
+    }
+  },
+  "firestore": {
+    "/clientes/{clienteId}": {
+      "schema": { "$ref": "#/entities/Cliente" },
+      "description": "Directorio permanente de clientes de Lavadero eLeGe"
+    },
+    "/pedidos/{pedidoId}": {
+      "schema": { "$ref": "#/entities/Pedido" },
+      "description": "Órdenes de servicio con seguimiento y estados"
+    },
+    "/prendas/{prendaId}": {
+      "schema": { "$ref": "#/entities/Prenda" },
+      "description": "Prendas individuales con QR para escaneo directo"
+    },
+    "/pagos/{pagoId}": {
+      "schema": { "$ref": "#/entities/Pago" },
+      "description": "Movimientos de caja y cobros asociados"
+    },
+    "/avisos_whatsapp/{avisoId}": {
+      "schema": { "$ref": "#/entities/AvisoWhatsApp" },
+      "description": "Historial de avisos enviados a clientes"
+    },
+    "/configuracion/{docId}": {
+      "schema": { "$ref": "#/entities/Configuracion" },
+      "description": "Parámetros del establecimiento"
+    },
+    "/auditoria/{auditId}": {
+      "schema": { "$ref": "#/entities/Auditoria" },
+      "description": "Bitácora de seguridad y trazabilidad operativa"
+    }
+  }
+}

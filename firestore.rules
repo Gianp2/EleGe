@@ -1,0 +1,336 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // =======================================================================
+    // REGLAS REFORZADAS DE SEGURIDAD ZERO-TRUST - LAVADERO ELEGE
+    // PROYECTO: elege-99d0c
+    // UID ADMINISTRADORA AUTORIZADA: eBvTLPVNQIefDTc52fmcmK0ID0K3
+    // CORREO AUTORIZADO: admin@elege.com
+    //
+    // ARQUITECTURA DE INTEGRIDAD CONTABLE Y TRAZABILIDAD:
+    // 1. Detección de límites contables en reglas:
+    //    Las reglas de Firestore validan límites invariantes de documento
+    //    (saldoPendiente >= 0, total >= 0, saldoPendiente <= total, y no reducir
+    //    total por debajo de cobros históricos percibidos).
+    //    La correspondencia matemática multimodelo exacta entre la sumatoria de
+    //    pagos vigentes y el saldo del pedido es garantizada por las transacciones
+    //    atómicas en FirestoreService (registrarPago, anularPago, savePedido).
+    // 2. Eliminación física PROHIBIDA en clientes, pedidos, prendas y pagos:
+    //    - Clientes: Desactivación lógica obligatoria (activo: false). Se eliminan
+    //      los campos manipulables 'tienePedidos' y 'totalPedidos' para evitar evasiones.
+    //    - Pedidos: Cancelación lógica obligatoria (estadoGeneral: 'cancelado').
+    //    - Pagos: Anulación formal auditada (anulado: true, motivo, UID, anuladoAt).
+    // 3. Verificación de correspondencia clienteId en prendas, pagos y avisos:
+    //    Cada prenda, pago o aviso debe pertenecer exactamente al clienteId
+    //    asociado al pedido (utilizando getAfter / get según corresponda).
+    // =======================================================================
+
+    // Red de seguridad global: DENEGACIÓN TOTAL POR DEFECTO
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // -----------------------------------------------------------------------
+    // Funciones auxiliares de identidad y autorización
+    // -----------------------------------------------------------------------
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Acceso exclusivo y estricto al UID administrador autorizado (deniega anónimos y terceros)
+    function isAuthorizedAdmin() {
+      return isSignedIn() &&
+        request.auth.uid == 'eBvTLPVNQIefDTc52fmcmK0ID0K3' &&
+        request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+
+    // Validación rigurosa de identificadores seguros (alfanumérico, guiones, sin inyección)
+    function isValidId(id) {
+      return id is string &&
+        id.size() > 0 &&
+        id.size() <= 128 &&
+        id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Validación uniforme de timestamps sensibles (ServerTimestamp, Timestamp Firestore o ISO string)
+    function isValidTimestamp(val) {
+      return val == request.time ||
+        val is timestamp ||
+        (val is string && val.size() >= 10 && val.size() <= 40);
+    }
+
+    // -----------------------------------------------------------------------
+    // Verificación de integridad referencial cruzada
+    // -----------------------------------------------------------------------
+    function clienteExiste(clienteId) {
+      return exists(/databases/$(database)/documents/clientes/$(clienteId)) ||
+        existsAfter(/databases/$(database)/documents/clientes/$(clienteId));
+    }
+
+    function pedidoExiste(pedidoId) {
+      return exists(/databases/$(database)/documents/pedidos/$(pedidoId)) ||
+        existsAfter(/databases/$(database)/documents/pedidos/$(pedidoId));
+    }
+
+    // Obtiene los datos del pedido padre considerando escrituras atómicas (batch o transacción)
+    function getPedidoData(pedidoId) {
+      return existsAfter(/databases/$(database)/documents/pedidos/$(pedidoId))
+        ? getAfter(/databases/$(database)/documents/pedidos/$(pedidoId)).data
+        : get(/databases/$(database)/documents/pedidos/$(pedidoId)).data;
+    }
+
+    // -----------------------------------------------------------------------
+    // Funciones de validación de esquemas y tipos de datos
+    // -----------------------------------------------------------------------
+
+    function isValidCliente(data, docId) {
+      return data.keys().hasAll(['id', 'nombre', 'telefono', 'fechaAlta', 'qrPayload']) &&
+        data.keys().hasOnly(['id', 'nombre', 'apellido', 'telefono', 'observaciones', 'fechaAlta', 'qrPayload', 'activo', 'createdAt', 'createdBy', 'updatedAt', 'migradoAt', 'migradoPor']) &&
+        data.id is string && data.id == docId && isValidId(data.id) &&
+        data.nombre is string && data.nombre.size() > 0 && data.nombre.size() <= 100 &&
+        (!('apellido' in data) || (data.apellido is string && data.apellido.size() <= 100)) &&
+        data.telefono is string && data.telefono.size() >= 6 && data.telefono.size() <= 30 &&
+        (!('observaciones' in data) || (data.observaciones is string && data.observaciones.size() <= 500)) &&
+        data.fechaAlta is string && data.fechaAlta.size() >= 10 &&
+        data.qrPayload is string && data.qrPayload.size() > 0 && data.qrPayload.size() <= 256 &&
+        (!('activo' in data) || data.activo is bool) &&
+        (!('createdAt' in data) || isValidTimestamp(data.createdAt)) &&
+        (!('updatedAt' in data) || isValidTimestamp(data.updatedAt)) &&
+        (!('createdBy' in data) || (data.createdBy is string && data.createdBy == request.auth.uid)) &&
+        (!('migradoAt' in data) || isValidTimestamp(data.migradoAt)) &&
+        (!('migradoPor' in data) || (data.migradoPor is string && data.migradoPor.size() <= 128));
+    }
+
+    function isValidPedido(data, docId) {
+      return data.keys().hasAll(['id', 'codigoVisible', 'clienteId', 'fechaRecepcion', 'total', 'saldoPendiente', 'estadoPago', 'estadoGeneral']) &&
+        data.keys().hasOnly(['id', 'codigoVisible', 'clienteId', 'fechaRecepcion', 'fechaEstimadaEntrega', 'prendas', 'total', 'saldoPendiente', 'estadoPago', 'estadoGeneral', 'observacionesGenerales', 'pagos', 'avisosWhatsApp', 'qrPayload', 'fechaEntregaEfectiva', 'createdAt', 'createdBy', 'updatedAt', 'updatedBy', 'migradoAt', 'migradoPor']) &&
+        data.id is string && data.id == docId && isValidId(data.id) &&
+        data.clienteId is string && isValidId(data.clienteId) &&
+        data.codigoVisible is string && data.codigoVisible.size() > 0 && data.codigoVisible.size() <= 30 &&
+        data.fechaRecepcion is string && data.fechaRecepcion.size() >= 10 &&
+        data.total is number && data.total >= 0 &&
+        data.saldoPendiente is number && data.saldoPendiente >= 0 &&
+        data.saldoPendiente <= data.total &&
+        data.estadoPago in ['pendiente', 'parcial', 'pagado'] &&
+        data.estadoGeneral in ['recibido', 'en_proceso', 'listo', 'entregado', 'cancelado'] &&
+        (!('fechaEstimadaEntrega' in data) || (data.fechaEstimadaEntrega is string && data.fechaEstimadaEntrega.size() >= 10)) &&
+        (!('fechaEntregaEfectiva' in data) || data.fechaEntregaEfectiva == null || (data.fechaEntregaEfectiva is string && data.fechaEntregaEfectiva.size() >= 10)) &&
+        (!('observacionesGenerales' in data) || (data.observacionesGenerales is string && data.observacionesGenerales.size() <= 1000)) &&
+        (!('qrPayload' in data) || (data.qrPayload is string && data.qrPayload.size() <= 256)) &&
+        (!('prendas' in data) || data.prendas is list) &&
+        (!('pagos' in data) || data.pagos is list) &&
+        (!('avisosWhatsApp' in data) || data.avisosWhatsApp is list) &&
+        (!('createdAt' in data) || isValidTimestamp(data.createdAt)) &&
+        (!('updatedAt' in data) || isValidTimestamp(data.updatedAt)) &&
+        (!('createdBy' in data) || (data.createdBy is string && data.createdBy == request.auth.uid)) &&
+        (!('updatedBy' in data) || (data.updatedBy is string && data.updatedBy == request.auth.uid)) &&
+        (!('migradoAt' in data) || isValidTimestamp(data.migradoAt)) &&
+        (!('migradoPor' in data) || (data.migradoPor is string && data.migradoPor.size() <= 128));
+    }
+
+    function isValidPrenda(data, docId) {
+      return data.keys().hasAll(['id', 'pedidoId', 'clienteId', 'tipo', 'servicio', 'precio', 'estado']) &&
+        data.keys().hasOnly(['id', 'pedidoId', 'clienteId', 'tipo', 'descripcion', 'servicio', 'precio', 'observaciones', 'estado', 'qrPayload', 'fechaActualizacion', 'createdAt', 'updatedAt', 'migradoAt']) &&
+        data.id is string && data.id == docId && isValidId(data.id) &&
+        data.pedidoId is string && isValidId(data.pedidoId) &&
+        data.clienteId is string && isValidId(data.clienteId) &&
+        data.tipo is string && data.tipo.size() > 0 && data.tipo.size() <= 100 &&
+        (!('descripcion' in data) || (data.descripcion is string && data.descripcion.size() <= 200)) &&
+        data.servicio is string && data.servicio.size() > 0 && data.servicio.size() <= 60 &&
+        data.precio is number && data.precio >= 0 &&
+        (!('observaciones' in data) || (data.observaciones is string && data.observaciones.size() <= 500)) &&
+        data.estado in ['recibido', 'en_proceso', 'listo', 'entregado'] &&
+        (!('qrPayload' in data) || (data.qrPayload is string && data.qrPayload.size() <= 256)) &&
+        (!('fechaActualizacion' in data) || (data.fechaActualizacion is string && data.fechaActualizacion.size() >= 10)) &&
+        (!('createdAt' in data) || isValidTimestamp(data.createdAt)) &&
+        (!('updatedAt' in data) || isValidTimestamp(data.updatedAt)) &&
+        (!('migradoAt' in data) || isValidTimestamp(data.migradoAt));
+    }
+
+    function isValidPago(data, docId) {
+      return data.keys().hasAll(['id', 'pedidoId', 'clienteId', 'monto', 'metodo', 'fecha']) &&
+        data.keys().hasOnly(['id', 'pedidoId', 'clienteId', 'monto', 'metodo', 'fecha', 'esSenia', 'nota', 'anulado', 'motivoAnulacion', 'anuladoAt', 'anuladoPor', 'registradoAt', 'registradoPor']) &&
+        data.id is string && data.id == docId && isValidId(data.id) &&
+        data.pedidoId is string && isValidId(data.pedidoId) &&
+        data.clienteId is string && isValidId(data.clienteId) &&
+        data.monto is number && data.monto > 0 &&
+        data.metodo in ['efectivo', 'transferencia', 'debito', 'credito', 'otro'] &&
+        data.fecha is string && data.fecha.size() >= 10 &&
+        (!('esSenia' in data) || data.esSenia is bool) &&
+        (!('nota' in data) || (data.nota is string && data.nota.size() <= 500)) &&
+        (!('anulado' in data) || data.anulado == false) &&
+        (!('registradoAt' in data) || isValidTimestamp(data.registradoAt)) &&
+        (!('registradoPor' in data) || (data.registradoPor is string && data.registradoPor == request.auth.uid));
+    }
+
+    function isValidConfiguracion(data) {
+      return data.keys().hasAll(['nombreComercio', 'telefono', 'formatoTicketDefecto']) &&
+        data.keys().hasOnly(['nombreComercio', 'telefono', 'direccion', 'lemaOTicketPie', 'formatoTicketDefecto', 'monedaSimbolo', 'diasEstimadosEntregaDefecto', 'notificarWhatsAppAuto', 'fechaUltimaModificacion', 'updatedAt', 'updatedBy']) &&
+        data.nombreComercio is string && data.nombreComercio.size() > 0 && data.nombreComercio.size() <= 100 &&
+        data.telefono is string && data.telefono.size() >= 6 && data.telefono.size() <= 30 &&
+        (!('direccion' in data) || (data.direccion is string && data.direccion.size() <= 200)) &&
+        (!('lemaOTicketPie' in data) || (data.lemaOTicketPie is string && data.lemaOTicketPie.size() <= 300)) &&
+        data.formatoTicketDefecto in ['80mm', '58mm'] &&
+        (!('monedaSimbolo' in data) || (data.monedaSimbolo is string && data.monedaSimbolo.size() <= 10)) &&
+        (!('diasEstimadosEntregaDefecto' in data) || (data.diasEstimadosEntregaDefecto is number && data.diasEstimadosEntregaDefecto >= 0 && data.diasEstimadosEntregaDefecto <= 365)) &&
+        (!('notificarWhatsAppAuto' in data) || data.notificarWhatsAppAuto is bool) &&
+        (!('updatedAt' in data) || isValidTimestamp(data.updatedAt)) &&
+        (!('updatedBy' in data) || (data.updatedBy is string && data.updatedBy == request.auth.uid));
+    }
+
+    function isValidAuditoria(data, docId) {
+      return data.keys().hasAll(['accion', 'fase', 'entidad', 'entidadId', 'detalles', 'usuarioUid']) &&
+        data.keys().hasOnly(['id', 'accion', 'fase', 'entidad', 'entidadId', 'detalles', 'usuarioUid', 'usuarioEmail', 'timestamp', 'datosPrevios', 'datosNuevos']) &&
+        (!('id' in data) || (data.id is string && data.id == docId && isValidId(data.id))) &&
+        data.accion in ['CREATE', 'UPDATE', 'DELETE', 'STATUS_CHANGE', 'PAYMENT', 'PAYMENT_CANCEL', 'ORDER_CANCEL', 'RESTORE', 'DEACTIVATE'] &&
+        data.fase in ['INICIADA', 'CONFIRMADA', 'FALLIDA'] &&
+        data.entidad in ['cliente', 'pedido', 'prenda', 'pago', 'configuracion', 'sistema'] &&
+        data.entidadId is string && isValidId(data.entidadId) &&
+        data.detalles is string && data.detalles.size() > 0 && data.detalles.size() <= 1000 &&
+        data.usuarioUid is string && data.usuarioUid == request.auth.uid &&
+        (!('usuarioEmail' in data) || (data.usuarioEmail is string && data.usuarioEmail.size() <= 100)) &&
+        (!('timestamp' in data) || isValidTimestamp(data.timestamp));
+    }
+
+    function isValidAvisoWhatsApp(data) {
+      return data.keys().hasAll(['fecha', 'pedidoId', 'clienteId', 'telefono', 'mensaje']) &&
+        data.keys().hasOnly(['fecha', 'prendaId', 'pedidoId', 'clienteId', 'telefono', 'mensaje', 'timestamp', 'enviadoPor', 'migradoAt']) &&
+        data.fecha is string && data.fecha.size() >= 10 &&
+        data.pedidoId is string && isValidId(data.pedidoId) &&
+        data.clienteId is string && isValidId(data.clienteId) &&
+        (!('prendaId' in data) || (data.prendaId is string && isValidId(data.prendaId))) &&
+        data.telefono is string && data.telefono.size() >= 6 && data.telefono.size() <= 30 &&
+        data.mensaje is string && data.mensaje.size() > 0 && data.mensaje.size() <= 1000 &&
+        (!('timestamp' in data) || isValidTimestamp(data.timestamp)) &&
+        (!('enviadoPor' in data) || (data.enviadoPor is string && data.enviadoPor == request.auth.uid)) &&
+        (!('migradoAt' in data) || isValidTimestamp(data.migradoAt));
+    }
+
+    // =======================================================================
+    // REGLAS ESPECÍFICAS POR COLECCIÓN
+    // =======================================================================
+
+    // 1. Clientes: ABM seguro con inmutabilidad de ID y fechaAlta
+    //    - Prohibición estricta de eliminación física (allow delete: if false)
+    //    - Se exige desactivación lógica (activo: false) para preservar integridad histórica
+    match /clientes/{clienteId} {
+      allow read: if isAuthorizedAdmin();
+      allow create: if isAuthorizedAdmin() &&
+        isValidId(clienteId) &&
+        isValidCliente(request.resource.data, clienteId);
+      allow update: if isAuthorizedAdmin() &&
+        isValidId(clienteId) &&
+        isValidCliente(request.resource.data, clienteId) &&
+        request.resource.data.id == resource.data.id &&
+        request.resource.data.fechaAlta == resource.data.fechaAlta;
+      allow delete: if false;
+    }
+
+    // 2. Pedidos: Órdenes de trabajo con consistencia contable e integridad referencial
+    //    - Prohibición estricta de eliminación física (allow delete: if false)
+    //    - Se exige cancelación lógica (estadoGeneral: 'cancelado') para preservar trazabilidad fiscal
+    match /pedidos/{pedidoId} {
+      allow read: if isAuthorizedAdmin();
+      allow create: if isAuthorizedAdmin() &&
+        isValidId(pedidoId) &&
+        isValidPedido(request.resource.data, pedidoId) &&
+        clienteExiste(request.resource.data.clienteId);
+      allow update: if isAuthorizedAdmin() &&
+        isValidId(pedidoId) &&
+        isValidPedido(request.resource.data, pedidoId) &&
+        request.resource.data.id == resource.data.id &&
+        request.resource.data.codigoVisible == resource.data.codigoVisible &&
+        request.resource.data.clienteId == resource.data.clienteId &&
+        request.resource.data.fechaRecepcion == resource.data.fechaRecepcion &&
+        // Bloqueo contable: el nuevo total no puede ser inferior a los pagos cobrados
+        request.resource.data.total >= (resource.data.total - resource.data.saldoPendiente) &&
+        // Protección de entregados: un pedido entregado no puede cancelarse arbitrariamente
+        (resource.data.estadoGeneral != 'entregado' || request.resource.data.estadoGeneral == 'entregado');
+      allow delete: if false;
+    }
+
+    // 3. Prendas: Prenda individual vinculada al cliente y pedido canónico
+    //    - Validación cruzada: prenda.clienteId DEBE coincidir con pedido.clienteId
+    //    - Prohibición de eliminación física para preservar inventario de trabajo
+    match /prendas/{prendaId} {
+      allow read: if isAuthorizedAdmin();
+      allow create: if isAuthorizedAdmin() &&
+        isValidId(prendaId) &&
+        isValidPrenda(request.resource.data, prendaId) &&
+        pedidoExiste(request.resource.data.pedidoId) &&
+        getPedidoData(request.resource.data.pedidoId).clienteId == request.resource.data.clienteId;
+      allow update: if isAuthorizedAdmin() &&
+        isValidId(prendaId) &&
+        isValidPrenda(request.resource.data, prendaId) &&
+        request.resource.data.id == resource.data.id &&
+        request.resource.data.pedidoId == resource.data.pedidoId &&
+        request.resource.data.clienteId == resource.data.clienteId &&
+        getPedidoData(resource.data.pedidoId).clienteId == request.resource.data.clienteId;
+      allow delete: if false;
+    }
+
+    // 4. Pagos: Inmutabilidad contable estricta
+    //    - Validación cruzada: pago.clienteId DEBE coincidir con pedido.clienteId
+    //    - Creación permitida solo con monto positivo y anulado == false
+    //    - Modificación de montos, fechas, métodos o IDs PROHIBIDA
+    //    - Única modificación permitida: Anulación formal auditada con:
+    //      * anulado: true
+    //      * motivoAnulacion obligatorio no vacío (mínimo 3 caracteres)
+    //      * anuladoPor coincidente con request.auth.uid
+    //      * anuladoAt timestamp válido
+    //    - Eliminación física PROHIBIDA
+    match /pagos/{pagoId} {
+      allow read: if isAuthorizedAdmin();
+      allow create: if isAuthorizedAdmin() &&
+        isValidId(pagoId) &&
+        isValidPago(request.resource.data, pagoId) &&
+        pedidoExiste(request.resource.data.pedidoId) &&
+        getPedidoData(request.resource.data.pedidoId).clienteId == request.resource.data.clienteId;
+      allow update: if isAuthorizedAdmin() &&
+        isValidId(pagoId) &&
+        resource.data.get('anulado', false) != true &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['anulado', 'motivoAnulacion', 'anuladoAt', 'anuladoPor']) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasAll(['anulado', 'motivoAnulacion', 'anuladoAt', 'anuladoPor']) &&
+        request.resource.data.anulado == true &&
+        request.resource.data.anuladoPor == request.auth.uid &&
+        request.resource.data.motivoAnulacion is string &&
+        request.resource.data.motivoAnulacion.size() >= 3 &&
+        request.resource.data.motivoAnulacion.size() <= 500 &&
+        request.resource.data.motivoAnulacion.matches('^.*\\S.*\\S.*\\S.*$') &&
+        isValidTimestamp(request.resource.data.anuladoAt);
+      allow delete: if false;
+    }
+
+    // 5. Avisos WhatsApp: Historial append-only de notificaciones enviadas
+    //    - Vinculación obligatoria con pedido y cliente correspondiente
+    match /avisos_whatsapp/{avisoId} {
+      allow read: if isAuthorizedAdmin();
+      allow create: if isAuthorizedAdmin() &&
+        isValidId(avisoId) &&
+        isValidAvisoWhatsApp(request.resource.data) &&
+        pedidoExiste(request.resource.data.pedidoId) &&
+        getPedidoData(request.resource.data.pedidoId).clienteId == request.resource.data.clienteId;
+      allow update, delete: if false;
+    }
+
+    // 6. Configuración: Parámetros del establecimiento (inmutable ante borrado)
+    match /configuracion/{docId} {
+      allow read: if isAuthorizedAdmin();
+      allow create, update: if isAuthorizedAdmin() &&
+        isValidId(docId) &&
+        isValidConfiguracion(request.resource.data);
+      allow delete: if false;
+    }
+
+    // 7. Auditoría: Inmutable y append-only (solo lectura y registro)
+    match /auditoria/{auditId} {
+      allow read: if isAuthorizedAdmin();
+      allow create: if isAuthorizedAdmin() &&
+        isValidId(auditId) &&
+        isValidAuditoria(request.resource.data, auditId);
+      allow update, delete: if false;
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "Lavadero eLeGe",
+  "description": "Sistema integral de gestión de lavandería: pedidos, prendas con QR, clientes, control de caja y avisos por WhatsApp.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
