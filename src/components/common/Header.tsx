@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { Plus, QrCode, Search, LogOut } from 'lucide-react';
+import { Plus, Search, LogOut } from 'lucide-react';
 import { NavTab } from './Sidebar';
 
 interface HeaderProps {
   activeTab: NavTab;
-  onOpenScanner: () => void;
   onNewOrder: () => void;
   onSearchLookup: (query: string) => void;
   onLogout?: () => void;
@@ -12,7 +11,6 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({
   activeTab,
-  onOpenScanner,
   onNewOrder,
   onSearchLookup,
   onLogout,
@@ -42,7 +40,7 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="h-14 sm:h-16 border-b border-neutral-200 bg-white px-3 sm:px-6 flex items-center justify-between gap-2 sm:gap-4 shrink-0 no-print shadow-2xs">
+    <header className="w-full min-w-0 h-14 sm:h-16 border-b border-neutral-200 bg-white px-3 sm:px-6 flex items-center justify-between gap-2 sm:gap-4 shrink-0 no-print shadow-2xs">
       {/* Zone 1: Title & Breadcrumb */}
       <div className="flex items-center gap-2 sm:gap-3 min-w-0">
         <div className="lg:hidden flex items-center gap-1.5 shrink-0">
@@ -76,15 +74,7 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Zone 3: Actions */}
       <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
-        <button
-          type="button"
-          onClick={onOpenScanner}
-          className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-neutral-700 hover:text-neutral-900 bg-neutral-100 hover:bg-neutral-200 border border-neutral-300 rounded-xl transition-colors cursor-pointer"
-        >
-          <QrCode className="w-4 h-4 text-emerald-600" />
-          <span className="whitespace-nowrap">Escanear QR</span>
-        </button>
-
+        {activeTab !== 'dashboard' && (
         <button
           type="button"
           onClick={onNewOrder}
@@ -94,6 +84,7 @@ export const Header: React.FC<HeaderProps> = ({
           <Plus className="w-4 h-4 stroke-[2.5]" />
           <span>Nuevo Pedido</span>
         </button>
+        )}
 
         {onLogout && (
           <button

@@ -223,7 +223,7 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-neutral-50 text-neutral-900 font-sans">
+    <div className="flex h-dvh w-full max-w-full overflow-hidden bg-neutral-50 text-neutral-900 font-sans">
       {/* Sidebar de escritorio en fondo blanco */}
       <Sidebar
         activeTab={activeTab}
@@ -247,7 +247,6 @@ export default function App() {
         {/* Header Superior Blanco */}
         <Header
           activeTab={activeTab}
-          onOpenScanner={() => setIsScannerOpen(true)}
           onNewOrder={() => {
             setClientePreseleccionado(null);
             setIsNewOrderOpen(true);
@@ -318,7 +317,7 @@ export default function App() {
           aria-label="Escanear código QR"
           title="Escanear código QR"
           onClick={() => setIsScannerOpen(true)}
-          className="lg:hidden fixed right-4 bottom-[calc(94px+env(safe-area-inset-bottom,0px))] z-50 flex h-14 w-14 items-center justify-center rounded-full bg-neutral-950 text-emerald-400 shadow-lg ring-1 ring-white/20 transition-colors hover:bg-neutral-800 active:bg-neutral-700 no-print"
+          className="lg:hidden fixed right-4 bottom-[calc(92px+env(safe-area-inset-bottom,0px))] z-50 flex h-14 w-14 items-center justify-center rounded-full bg-neutral-950 text-emerald-400 shadow-lg ring-1 ring-white/20 transition-colors hover:bg-neutral-800 active:bg-neutral-700 no-print"
         >
           <QrCode className="h-7 w-7" aria-hidden="true" />
         </button>
