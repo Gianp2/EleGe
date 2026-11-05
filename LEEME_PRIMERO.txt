@@ -1,0 +1,11 @@
+Lavadero eLeGe — base: EleGe-main.zip proporcionado por el usuario.
+Cambios respecto de la base:
+- src/App.tsx: importacion y montaje condicional de AssistantPanel.
+- src/components/assistant/AssistantPanel.tsx: consultas de solo lectura y dictado opcional mediante Web Speech API.
+- .env.example: plantilla sin credenciales.
+No se altero OrderCreateModal.tsx ni storage.ts, reglas o migracion.
+NO reemplazar directamente el proyecto actual: extraer a carpeta separada.
+Dentro de la carpeta extraida, copiar el .env.local valido (no incluido).
+CMD: set NODE_OPTIONS= ; npm ci ; npx tsc --noEmit ; npm run build ; npm run dev
+Probar con datos ficticios. Dictado sujeto al navegador y permisos de microfono.
+No publicar ni ejecutar migraciones hasta validar el funcionamiento en navegador.

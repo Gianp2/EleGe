@@ -22,6 +22,7 @@ import { useAuth } from './context/AuthContext';
 import { QrCode } from 'lucide-react';
 import { LoginView } from './components/auth/LoginView';
 import { AuthLoadingScreen } from './components/auth/AuthLoadingScreen';
+import { AssistantPanel } from './components/assistant/AssistantPanel';
 
 export default function App() {
   const { currentUser, isAuthorized, loading, logout } = useAuth();
@@ -331,6 +332,17 @@ export default function App() {
           }}
         />
       </div>
+
+      {/* Asistente de consultas, solo lectura. Ocultar mientras existan modales. */}
+      {!isNewOrderOpen && !isScannerOpen && !isClientModalOpen &&
+        !selectedOrder && !selectedClient && !scannedPrendaId &&
+        !ticketModal.isOpen && !confirmDeleteClient.isOpen && !confirmResetOpen && (
+          <AssistantPanel
+            pedidos={pedidos}
+            clientes={clientes}
+            onSelectOrder={(pedido) => setSelectedOrder(pedido)}
+          />
+        )}
 
       {/* --- MODALES DEL SISTEMA --- */}
 
