@@ -25,26 +25,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Si Firebase no está configurado (modo preview sin VITE_FIREBASE_API_KEY),
-    // restaurar sesión de previsualización si existía previamente
+    // Fail closed: no se autorizan sesiones simuladas ni modo de previsualización.
     if (!isFirebaseConfigured) {
-      try {
-        const savedSession = sessionStorage.getItem('elege_preview_admin_session');
-        if (savedSession === 'true') {
-          const previewUser = {
-            uid: 'eBvTLPVNQIefDTc52fmcmK0ID0K3',
-            email: DEFAULT_ADMIN_EMAIL,
-            displayName: 'Administradora eLeGe',
-            emailVerified: true,
-            isAnonymous: false,
-            providerData: [],
-          } as unknown as User;
-          setCurrentUser(previewUser);
-          setIsAuthorized(true);
-        }
-      } catch {
-        // Ignorar si sessionStorage no está disponible
-      }
+      setCurrentUser(null);
+      setIsAuthorized(false);
+      setAuthError('Firebase no está configurado. Contactá al administrador.');
       setLoading(false);
       return;
     }
@@ -91,53 +76,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const cleanEmail = email.trim() || DEFAULT_ADMIN_EMAIL;
 
-    // Modo Previsualización / Local Seguro: si Firebase remoto no tiene API Key configurada
     if (!isFirebaseConfigured) {
-      console.info('[Firebase Auth] Operando en modo previsualización local (sin VITE_FIREBASE_API_KEY activa).');
-
-      // Validar que el correo corresponda a la administradora autorizada
-      if (cleanEmail.toLowerCase() !== DEFAULT_ADMIN_EMAIL.toLowerCase()) {
-        console.warn('[Firebase Auth] Intento de acceso denegado: correo no autorizado', cleanEmail);
-        setAuthError('Acceso denegado: este usuario no tiene permisos de administradora en Lavadero eLeGe.');
-        setLoading(false);
-        return false;
-      }
-
-      // Validar que se haya ingresado contraseña
-      if (!pass || pass.trim() === '') {
-        setAuthError('Por favor ingresá tu contraseña.');
-        setLoading(false);
-        return false;
-      }
-
-      // Generar sesión autorizada con el UID oficial de administradora
-      const previewAdminUser = {
-        uid: 'eBvTLPVNQIefDTc52fmcmK0ID0K3',
-        email: cleanEmail,
-        displayName: 'Administradora eLeGe',
-        emailVerified: true,
-        isAnonymous: false,
-        providerData: [],
-      } as unknown as User;
-
-      try {
-        sessionStorage.setItem('elege_preview_admin_session', 'true');
-      } catch {
-        // Continuar si sessionStorage no está disponible
-      }
-
-      console.info('[Firebase Auth] Acceso concedido a Administradora autorizada en Previsualización:', {
-        email: cleanEmail,
-        uid: 'eBvTLPVNQIefDTc52fmcmK0ID0K3',
-        motorPersistencia: 'localStorage',
-        instruccionesNube: 'Para activar Firebase remoto, definí VITE_FIREBASE_API_KEY o llamá configurarFirebaseApiKey("AIzaSy...") en consola.',
-      });
-
-      setCurrentUser(previewAdminUser);
-      setIsAuthorized(true);
-      setAuthError(null);
+      setCurrentUser(null);
+      setIsAuthorized(false);
+      setAuthError('Firebase no está configurado. No se puede iniciar sesión.');
       setLoading(false);
-      return true;
+      return false;
     }
 
     try {

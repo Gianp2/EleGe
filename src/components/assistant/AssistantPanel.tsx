@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Bot, MessageCircle, Mic, MicOff, Send, X } from 'lucide-react';
 import type { Cliente, Pedido } from '../../types';
+import type { ClientDraft } from '../../utils/voiceDraft';
+import { isNewClientIntent, isNewOrderIntent, parseClient } from '../../utils/voiceDraft';
 
 type Message = { role: 'user' | 'assistant'; text: string; orders?: Pedido[] };
 
@@ -60,15 +62,17 @@ interface Props {
   pedidos: Pedido[];
   clientes: Cliente[];
   onSelectOrder: (pedido: Pedido) => void;
+  onNewClient: (draft: ClientDraft) => void;
+  onNewOrder: (text: string) => void;
 }
 
-export function AssistantPanel({ pedidos, clientes, onSelectOrder }: Props) {
+export function AssistantPanel({ pedidos, clientes, onSelectOrder, onNewClient, onNewOrder }: Props) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [listening, setListening] = useState(false);
   const [voiceError, setVoiceError] = useState('');
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', text: '¡Hola! Soy el asistente eLeGe. Escribí o dictá qué necesitás consultar.' },
+    { role: 'assistant', text: '¡Hola! Puedo consultar pedidos y clientes, o preparar un alta. Probá: “Creá una clienta que se llama Laura Pérez, teléfono 3471 555555” o “Nuevo pedido para María, dos camisas”.' },
   ]);
   const recognitionRef = useRef<SpeechRecognizer | null>(null);
   const hasSpeech = typeof window !== 'undefined' && Boolean(
@@ -125,7 +129,16 @@ export function AssistantPanel({ pedidos, clientes, onSelectOrder }: Props) {
   const submit = () => {
     const text = query.trim().slice(0, 250);
     if (!text) return;
-    setMessages(prev => [...prev, { role: 'user' as const, text }, answer(text, pedidos, clientes)].slice(-30));
+    if (isNewClientIntent(text)) {
+      const draft = parseClient(text);
+      setMessages(prev => [...prev, { role: 'user' as const, text }, {role: 'assistant' as const, text: 'Abrí el alta de cliente con los datos reconocidos. Revisá y confirmá para guardar.'}].slice(-30));
+      onNewClient(draft);
+    } else if (isNewOrderIntent(text)) {
+      setMessages(prev => [...prev, { role: 'user' as const, text }, {role: 'assistant' as const, text: 'Abrí Nuevo Pedido con un borrador. Revisá el cliente, las prendas y los importes antes de crear el pedido.'}].slice(-30));
+      onNewOrder(text);
+    } else {
+      setMessages(prev => [...prev, { role: 'user' as const, text }, answer(text, pedidos, clientes)].slice(-30));
+    }
     setQuery('');
   };
 
@@ -139,7 +152,7 @@ export function AssistantPanel({ pedidos, clientes, onSelectOrder }: Props) {
               <Bot className="h-5 w-5" />
               <div>
                 <p className="text-sm font-bold">Asistente eLeGe</p>
-                <p className="text-xs text-neutral-500">Consultas y dictado · Solo lectura</p>
+                <p className="text-xs text-neutral-500">Consultas y altas con confirmación</p>
               </div>
             </div>
             <button type="button" onClick={() => setOpen(false)} aria-label="Cerrar asistente">
@@ -177,7 +190,7 @@ export function AssistantPanel({ pedidos, clientes, onSelectOrder }: Props) {
                 <Send className="h-4 w-4" />
               </button>
             </div>
-            <p className="mt-2 text-[11px] text-neutral-500">El dictado completa el texto; revisalo y presioná enviar. No modifica datos.</p>
+            <p className="mt-2 text-[11px] text-neutral-500">Para dar de alta clientes o pedidos se abrirá un formulario que deberás revisar y confirmar.</p>
           </form>
         </section>
       )}

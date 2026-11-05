@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { AlertTriangle, UserCheck } from 'lucide-react';
 import { Cliente } from '../../types';
+import type { ClientDraft } from '../../utils/voiceDraft';
 import { Modal } from '../common/Modal';
 import { codificarQRCliente } from '../../utils/qr';
 import { storage } from '../../services/storage';
@@ -9,6 +10,7 @@ interface ClientModalProps {
   isOpen: boolean;
   onClose: () => void;
   clienteEditar?: Cliente | null;
+  initialDraft?: ClientDraft | null;
   onClientSaved: (cliente: Cliente) => void;
 }
 
@@ -16,6 +18,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
   isOpen,
   onClose,
   clienteEditar,
+  initialDraft,
   onClientSaved,
 }) => {
   const [nombre, setNombre] = useState('');
@@ -31,13 +34,13 @@ export const ClientModal: React.FC<ClientModalProps> = ({
       setTelefono(clienteEditar.telefono || '');
       setObservaciones(clienteEditar.observaciones || '');
     } else {
-      setNombre('');
-      setApellido('');
-      setTelefono('');
+      setNombre(initialDraft?.nombre || '');
+      setApellido(initialDraft?.apellido || '');
+      setTelefono(initialDraft?.telefono || '');
       setObservaciones('');
     }
     setError(null);
-  }, [clienteEditar, isOpen]);
+  }, [clienteEditar, isOpen, initialDraft]);
 
   // Detección en tiempo real de duplicados por teléfono normalizado
   const posibleDuplicado = useMemo(() => {

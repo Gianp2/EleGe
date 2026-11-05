@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Plus,
   Trash2,
@@ -9,6 +9,7 @@ import {
   AlertTriangle,
   Check,
   X,
+  Mic, MicOff,
 } from 'lucide-react';
 import { Cliente, Pedido, Prenda, TipoServicio, MetodoPago, Pago } from '../../types';
 import { Modal } from '../common/Modal';
@@ -19,11 +20,14 @@ import {
 } from '../../utils/formatters';
 import { codificarQRPedido, codificarQRPrenda, codificarQRCliente } from '../../utils/qr';
 import { storage } from '../../services/storage';
+import { parseOrder, normalizar } from '../../utils/voiceDraft';
+import { getRecognizer, type SpeechRecognizer } from '../../utils/speech';
 
 interface OrderCreateModalProps {
   isOpen: boolean;
   onClose: () => void;
   clientePreseleccionado?: Cliente | null;
+  initialVoiceText?: string;
   onOrderCreated: (pedido: Pedido) => void;
   onOpenCreateClientModal?: () => void;
 }
@@ -44,6 +48,7 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
   isOpen,
   onClose,
   clientePreseleccionado,
+  initialVoiceText,
   onOrderCreated,
   onOpenCreateClientModal,
 }) => {
@@ -94,6 +99,63 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
   const [metodoPagoSenia, setMetodoPagoSenia] = useState<MetodoPago>('efectivo');
 
   const [error, setError] = useState<string | null>(null);
+  const [dictado, setDictado] = useState('');
+  const [escuchando, setEscuchando] = useState(false);
+  const [errorDictado, setErrorDictado] = useState('');
+  const [resumenDictado, setResumenDictado] = useState('');
+  const reconocimientoRef = useRef<SpeechRecognizer | null>(null);
+
+  const aplicarDictado = (texto: string) => {
+    const borrador = parseOrder(texto);
+    let coincidente: Cliente | undefined;
+    if (borrador.clienteBusqueda) {
+      const target = normalizar(borrador.clienteBusqueda);
+      coincidente = storage.getClientes().find(c => normalizar(`${c.nombre} ${c.apellido || ''}`) === target);
+      if (coincidente) setClienteId(coincidente.id);
+      else { setFiltroCliente(borrador.clienteBusqueda); setClienteId(''); }
+    }
+    if (borrador.prendas.length) {
+      setPrendas(prev => [...prev.filter(p => !p.tempId.startsWith('voz_')), ...borrador.prendas.map((p, index) => ({
+        ...p, descripcion: '', tempId: `voz_${Date.now()}_${index}`,
+      }))]);
+    }
+    if (borrador.senia !== undefined && borrador.senia >= 0) {
+      setRegistrarSenia(true);
+      setMontoSenia(borrador.senia);
+    }
+    setResumenDictado(`${borrador.prendas.length} prenda(s) agregadas al borrador.${coincidente ? ` Cliente: ${coincidente.nombre}.` : borrador.clienteBusqueda ? ` Verificá cliente: ${borrador.clienteBusqueda}.` : ' Seleccioná el cliente.'} Revisá precios, cantidades y seña antes de guardar.`);
+    setErrorDictado(borrador.prendas.length ? '' : 'No reconocí prendas. Podés corregir el texto o agregarlas manualmente.');
+  };
+  const alternarMicrofono = () => {
+    if (escuchando) { reconocimientoRef.current?.stop(); setEscuchando(false); return; }
+    const Recognition = getRecognizer();
+    if (!Recognition) { setErrorDictado('El navegador no admite dictado. Probá Chrome o Edge.'); return; }
+    const rec = new Recognition();
+    rec.lang = 'es-AR'; rec.continuous = false; rec.interimResults = false;
+    rec.onresult = event => setDictado(prev => [prev, Array.from(event.results).map(r=>r[0]?.transcript || '').join(' ')].filter(Boolean).join(' ').slice(0, 1500));
+    rec.onerror = event => { setErrorDictado(event.error === 'not-allowed' ? 'Permití el uso del micrófono en el navegador.' : `Error de dictado: ${event.error}`); setEscuchando(false); };
+    rec.onend = () => setEscuchando(false);
+    reconocimientoRef.current = rec;
+    try { rec.start(); setEscuchando(true); setErrorDictado(''); } catch { setErrorDictado('No se pudo iniciar el micrófono.'); }
+  };
+  useEffect(() => () => { reconocimientoRef.current?.stop(); }, []);
+  useEffect(() => {
+    if (!isOpen) {
+      reconocimientoRef.current?.stop();
+      setEscuchando(false);
+      setDictado('');
+      setErrorDictado('');
+      setResumenDictado('');
+      setPrendas([]);
+      setClienteId('');
+      setFiltroCliente('');
+      setRegistrarSenia(false);
+      setMontoSenia(0);
+      setObservacionesGenerales('');
+      setFechaEstimada(defaultFechaEstimada());
+    }
+  }, [isOpen]);
+
 
   useEffect(() => {
     if (isOpen) {
@@ -108,6 +170,10 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
       setMostrarAltaRapida(false);
     }
   }, [isOpen, clientePreseleccionado]);
+
+  useEffect(() => { if (isOpen && initialVoiceText) { setDictado(initialVoiceText); aplicarDictado(initialVoiceText); } }, [isOpen, initialVoiceText]);
+
+
 
   // Actualizar precio sugerido al cambiar servicio
   const handleCambioServicio = (serv: TipoServicio) => {
@@ -206,6 +272,14 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
       setError('Debes agregar al menos una prenda al pedido.');
       return;
     }
+    if (prendas.some(p => !Number.isFinite(p.precio) || p.precio <= 0)) {
+      setError('Revisá los precios: todas las prendas deben tener un importe válido mayor a cero.');
+      return;
+    }
+    if (registrarSenia && (!Number.isFinite(montoSenia) || montoSenia < 0)) {
+      setError('La seña debe ser un importe válido mayor o igual a cero.');
+      return;
+    }
     if (registrarSenia && montoSenia > totalCalculado) {
       setError('La seña no puede superar el monto total del pedido.');
       return;
@@ -284,6 +358,21 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
             {error}
           </div>
         )}
+
+        {/* Dictado: siempre prepara borrador, nunca crea automáticamente. */}
+        <div className="rounded-2xl border border-neutral-200 bg-neutral-50 p-4 space-y-3">
+          <div className="flex items-center gap-2 text-sm font-semibold"><Mic className="h-4 w-4"/> Dictar nuevo pedido</div>
+          <p className="text-xs text-neutral-600">Ej.: “Pedido para María González, dos camisas y un pantalón, seña de 5000”. También podés escribirlo.</p>
+          <textarea value={dictado} onChange={e=>setDictado(e.target.value)} rows={2} maxLength={1500}
+            placeholder="Describí el pedido..." className="w-full rounded-xl border border-neutral-300 bg-white p-3 text-sm outline-none" />
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={alternarMicrofono} className="inline-flex items-center gap-2 rounded-xl border border-neutral-300 bg-white px-3 py-2 text-xs font-semibold">
+              {escuchando ? <MicOff className="h-4 w-4"/> : <Mic className="h-4 w-4"/>}{escuchando ? 'Detener' : 'Dictar'}</button>
+            <button type="button" disabled={!dictado.trim()} onClick={()=>aplicarDictado(dictado)} className="rounded-xl bg-neutral-900 px-3 py-2 text-xs font-semibold text-white disabled:opacity-40">Completar borrador</button>
+          </div>
+          {errorDictado && <p role="alert" className="text-xs text-rose-700">{errorDictado}</p>}
+          {resumenDictado && <p role="status" className="text-xs text-amber-800">{resumenDictado}</p>}
+        </div>
 
         {/* 1. SELECCIÓN O ALTA RÁPIDA DE CLIENTE */}
         <div className="p-4 rounded-2xl bg-neutral-50 border border-neutral-200 space-y-3">
@@ -586,9 +675,11 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
                   </div>
 
                   <div className="flex items-center gap-3 shrink-0">
-                    <span className="font-mono font-bold text-neutral-900">
-                      {formatMoneda(p.precio)}
-                    </span>
+                    <label className="flex items-center gap-1 text-[11px] text-neutral-500">
+                      $ <input type="number" min="1" step="1" aria-label={`Precio de ${p.tipo} ${idx + 1}`}
+                        value={p.precio} onChange={e => setPrendas(prev => prev.map(x => x.tempId === p.tempId ? {...x, precio: Number(e.target.value)} : x))}
+                        className="w-20 rounded-lg border border-neutral-300 bg-white px-2 py-1 font-mono font-bold text-neutral-900" />
+                    </label>
                     <button
                       type="button"
                       onClick={() => handleEliminarPrenda(p.tempId)}
