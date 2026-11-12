@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Plus,
   Trash2,
@@ -9,7 +9,7 @@ import {
   AlertTriangle,
   Check,
   X,
-  Mic, MicOff,
+  Mic, MicOff, WandSparkles,
 } from 'lucide-react';
 import { Cliente, Pedido, Prenda, TipoServicio, MetodoPago, Pago } from '../../types';
 import { Modal } from '../common/Modal';
@@ -20,16 +20,16 @@ import {
 } from '../../utils/formatters';
 import { codificarQRPedido, codificarQRPrenda, codificarQRCliente } from '../../utils/qr';
 import { storage } from '../../services/storage';
-import { parseOrder, normalizar } from '../../utils/voiceDraft';
-import { getRecognizer, type SpeechRecognizer } from '../../utils/speech';
+import { parseDictation } from '../../utils/dictationParser';
+import { useSpeechDictation } from '../../hooks/useSpeechDictation';
 
 interface OrderCreateModalProps {
   isOpen: boolean;
   onClose: () => void;
   clientePreseleccionado?: Cliente | null;
-  initialVoiceText?: string;
   onOrderCreated: (pedido: Pedido) => void;
   onOpenCreateClientModal?: () => void;
+  initialDictation?: string;
 }
 
 const PRENDAS_RAPIDAS = [
@@ -48,9 +48,9 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
   isOpen,
   onClose,
   clientePreseleccionado,
-  initialVoiceText,
   onOrderCreated,
   onOpenCreateClientModal,
+  initialDictation,
 }) => {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [clienteId, setClienteId] = useState<string>('');
@@ -90,71 +90,28 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
   const [nuevoTipo, setNuevoTipo] = useState('');
   const [nuevaDescripcion, setNuevaDescripcion] = useState('');
   const [nuevoServicio, setNuevoServicio] = useState<TipoServicio>('lavado_planchado');
-  const [nuevoPrecio, setNuevoPrecio] = useState<number>(SERVICIOS_INFO['lavado_planchado'].precioSugerido);
+  const [nuevoPrecioInput, setNuevoPrecioInput] = useState<string>(String(SERVICIOS_INFO['lavado_planchado'].precioSugerido));
+  const nuevoPrecio = nuevoPrecioInput.trim() === '' ? 0 : Number(nuevoPrecioInput);
+  const setNuevoPrecio = (value: number) => setNuevoPrecioInput(String(value));
   const [nuevasObservaciones, setNuevasObservaciones] = useState('');
 
   // Seña inicial
   const [registrarSenia, setRegistrarSenia] = useState(false);
-  const [montoSenia, setMontoSenia] = useState<number>(0);
+  const [montoSeniaInput, setMontoSeniaInput] = useState<string>('');
+  const montoSenia = montoSeniaInput.trim() === '' ? 0 : Number(montoSeniaInput);
+  const setMontoSenia = (value: number) => setMontoSeniaInput(String(value));
   const [metodoPagoSenia, setMetodoPagoSenia] = useState<MetodoPago>('efectivo');
 
   const [error, setError] = useState<string | null>(null);
   const [dictado, setDictado] = useState('');
-  const [escuchando, setEscuchando] = useState(false);
-  const [errorDictado, setErrorDictado] = useState('');
-  const [resumenDictado, setResumenDictado] = useState('');
-  const reconocimientoRef = useRef<SpeechRecognizer | null>(null);
-
-  const aplicarDictado = (texto: string) => {
-    const borrador = parseOrder(texto);
-    let coincidente: Cliente | undefined;
-    if (borrador.clienteBusqueda) {
-      const target = normalizar(borrador.clienteBusqueda);
-      coincidente = storage.getClientes().find(c => normalizar(`${c.nombre} ${c.apellido || ''}`) === target);
-      if (coincidente) setClienteId(coincidente.id);
-      else { setFiltroCliente(borrador.clienteBusqueda); setClienteId(''); }
-    }
-    if (borrador.prendas.length) {
-      setPrendas(prev => [...prev.filter(p => !p.tempId.startsWith('voz_')), ...borrador.prendas.map((p, index) => ({
-        ...p, descripcion: '', tempId: `voz_${Date.now()}_${index}`,
-      }))]);
-    }
-    if (borrador.senia !== undefined && borrador.senia >= 0) {
-      setRegistrarSenia(true);
-      setMontoSenia(borrador.senia);
-    }
-    setResumenDictado(`${borrador.prendas.length} prenda(s) agregadas al borrador.${coincidente ? ` Cliente: ${coincidente.nombre}.` : borrador.clienteBusqueda ? ` Verificá cliente: ${borrador.clienteBusqueda}.` : ' Seleccioná el cliente.'} Revisá precios, cantidades y seña antes de guardar.`);
-    setErrorDictado(borrador.prendas.length ? '' : 'No reconocí prendas. Podés corregir el texto o agregarlas manualmente.');
-  };
-  const alternarMicrofono = () => {
-    if (escuchando) { reconocimientoRef.current?.stop(); setEscuchando(false); return; }
-    const Recognition = getRecognizer();
-    if (!Recognition) { setErrorDictado('El navegador no admite dictado. Probá Chrome o Edge.'); return; }
-    const rec = new Recognition();
-    rec.lang = 'es-AR'; rec.continuous = false; rec.interimResults = false;
-    rec.onresult = event => setDictado(prev => [prev, Array.from(event.results).map(r=>r[0]?.transcript || '').join(' ')].filter(Boolean).join(' ').slice(0, 1500));
-    rec.onerror = event => { setErrorDictado(event.error === 'not-allowed' ? 'Permití el uso del micrófono en el navegador.' : `Error de dictado: ${event.error}`); setEscuchando(false); };
-    rec.onend = () => setEscuchando(false);
-    reconocimientoRef.current = rec;
-    try { rec.start(); setEscuchando(true); setErrorDictado(''); } catch { setErrorDictado('No se pudo iniciar el micrófono.'); }
-  };
-  useEffect(() => () => { reconocimientoRef.current?.stop(); }, []);
-  useEffect(() => {
-    if (!isOpen) {
-      reconocimientoRef.current?.stop();
-      setEscuchando(false);
-      setDictado('');
-      setErrorDictado('');
-      setResumenDictado('');
-      setPrendas([]);
-      setClienteId('');
-      setFiltroCliente('');
-      setRegistrarSenia(false);
-      setMontoSenia(0);
-      setObservacionesGenerales('');
-      setFechaEstimada(defaultFechaEstimada());
-    }
-  }, [isOpen]);
+  const [dictadoAvisos, setDictadoAvisos] = useState<string[]>([]);
+  const [dictadoAplicado, setDictadoAplicado] = useState(false);
+  const [fechaPorConfirmar, setFechaPorConfirmar] = useState(false);
+  const [dictadoUltimoAplicado, setDictadoUltimoAplicado] = useState('');
+  const speech = useSpeechDictation(text => {
+    setDictado(prev => [prev, text].filter(Boolean).join(' ').slice(0, 2500));
+    aplicarDictado(text);
+  });
 
 
   useEffect(() => {
@@ -163,17 +120,86 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
       setClientes(allClientes);
       if (clientePreseleccionado) {
         setClienteId(clientePreseleccionado.id);
-      } else if (allClientes.length > 0 && !clienteId) {
-        setClienteId(allClientes[0].id);
+      } else {
+        setClienteId('');
       }
       setError(null);
       setMostrarAltaRapida(false);
+      setFechaPorConfirmar(false);
     }
   }, [isOpen, clientePreseleccionado]);
 
-  useEffect(() => { if (isOpen && initialVoiceText) { setDictado(initialVoiceText); aplicarDictado(initialVoiceText); } }, [isOpen, initialVoiceText]);
+  useEffect(() => {
+    if (!isOpen) {
+      speech.stop();
+      return;
+    }
+    setDictado(initialDictation || '');
+    setDictadoAplicado(false);
+    setDictadoUltimoAplicado('');
+    setDictadoAvisos([]);
+  }, [isOpen, initialDictation]);
 
+  const aplicarDictado = (source: string = dictado) => {
+    const entrada = source.trim();
+    if (!entrada || entrada === dictadoUltimoAplicado) return;
+    const draft = parseDictation(source);
+    const avisos = [...draft.pendientes];
+    const allClientes = storage.getClientes();
+    const phoneDigits = (draft.telefono || '').replace(/\D/g, '');
+    const existingPhone = phoneDigits ? allClientes.find(c => c.telefono.replace(/\D/g, '') === phoneDigits) : undefined;
+    const byName = draft.nombre ? allClientes.filter(c =>
+      `${c.nombre} ${c.apellido || ''}`.trim().toLocaleLowerCase('es-AR') ===
+      `${draft.nombre} ${draft.apellido || ''}`.trim().toLocaleLowerCase('es-AR')) : [];
+    if (existingPhone) {
+      setClienteId(existingPhone.id);
+      if (draft.nombre && existingPhone.nombre.toLocaleLowerCase('es-AR') !== draft.nombre.toLocaleLowerCase('es-AR')) {
+        avisos.push('El teléfono corresponde a otro nombre: verificá la identidad del cliente.');
+      }
+      setMostrarAltaRapida(false);
+    } else if (byName.length === 1 && !phoneDigits) {
+      setClienteId(byName[0].id);
+      setMostrarAltaRapida(false);
+      avisos.push('Revisá que sea el cliente correcto antes de guardar.');
+    } else if (draft.nombre || draft.telefono) {
+      setMostrarAltaRapida(true);
+      setClienteId('');
+      if (draft.nombre) setRapidoNombre(draft.nombre);
+      if (draft.apellido) setRapidoApellido(draft.apellido);
+      if (draft.telefono) setRapidoTelefono(draft.telefono);
+      avisos.push('Cliente nuevo: revisá y pulsá «Crear y Seleccionar» antes de guardar el pedido.');
+      if (byName.length > 1) avisos.push('Hay varios clientes con ese nombre: confirmá su teléfono.');
+    }
+    const listos = draft.prendas.filter(p => p.precio !== null && p.precio > 0);
+    if (listos.length) {
+      setPrendas(prev => [...prev, ...listos.map(p => ({
+        tempId: `voz_${Date.now()}_${Math.random().toString(36).slice(2,8)}`,
+        tipo: p.tipo, descripcion: p.descripcion, servicio: p.servicio, precio: p.precio!,
+      }))]);
+    }
+    const sinPrecio = draft.prendas.find(p => p.precio === null);
+    if (sinPrecio) {
+      setNuevoTipo(sinPrecio.tipo);
+      setNuevoServicio(sinPrecio.servicio);
+      setNuevoPrecio(0);
+      avisos.push('La primera prenda sin precio quedó preparada abajo. Completá su precio y agregala.');
+    }
+    if (draft.senia !== undefined) {
+      setRegistrarSenia(draft.senia > 0);
+      setMontoSenia(draft.senia);
+    }
+    if (draft.metodoPago) setMetodoPagoSenia(draft.metodoPago);
+    if (draft.fecha) { setFechaEstimada(draft.fecha); setFechaPorConfirmar(false); }
+    else if (draft.pendientes.some(x => x.includes('fecha de entrega'))) setFechaPorConfirmar(true);
+    setDictadoAvisos(avisos.length ? avisos : ['Datos incorporados al borrador. Revisalos antes de confirmar.']);
+    setDictadoAplicado(true);
+    setDictadoUltimoAplicado(entrada);
+    setError(null);
+  };
 
+  useEffect(() => {
+    if (isOpen && initialDictation?.trim()) aplicarDictado(initialDictation);
+  }, [isOpen, initialDictation]);
 
   // Actualizar precio sugerido al cambiar servicio
   const handleCambioServicio = (serv: TipoServicio) => {
@@ -233,6 +259,10 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
       return;
     }
 
+    if (posibleDuplicadoAlta) {
+      setErrorAltaRapida('Ese teléfono ya pertenece a otro cliente. Seleccionalo en lugar de duplicarlo.');
+      return;
+    }
     const nuevoId = storage.generarSiguienteIdCliente();
     const nuevoCliente: Cliente = {
       id: nuevoId,
@@ -264,6 +294,11 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
 
   const handleGuardarPedido = (e: React.FormEvent) => {
     e.preventDefault();
+    if (speech.listening) { setError('Detené el dictado antes de confirmar el pedido.'); return; }
+    if (fechaPorConfirmar) {
+      setError('Confirmá la fecha de entrega. El dictado mencionó un día sin fecha exacta.');
+      return;
+    }
     if (!clienteId) {
       setError('Debes seleccionar o crear un cliente para el pedido.');
       return;
@@ -272,15 +307,11 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
       setError('Debes agregar al menos una prenda al pedido.');
       return;
     }
-    if (prendas.some(p => !Number.isFinite(p.precio) || p.precio <= 0)) {
-      setError('Revisá los precios: todas las prendas deben tener un importe válido mayor a cero.');
+    if (mostrarAltaRapida) {
+      setError('Primero creá o seleccioná el cliente antes de guardar el pedido.');
       return;
     }
-    if (registrarSenia && (!Number.isFinite(montoSenia) || montoSenia < 0)) {
-      setError('La seña debe ser un importe válido mayor o igual a cero.');
-      return;
-    }
-    if (registrarSenia && montoSenia > totalCalculado) {
+    if (registrarSenia && (montoSenia < 0 || montoSenia > totalCalculado)) {
       setError('La seña no puede superar el monto total del pedido.');
       return;
     }
@@ -348,8 +379,8 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Nuevo Pedido de Lavandería"
-      subtitle="Recepción de prendas, asignación de servicios y cálculo de importe"
+      title="Nuevo pedido"
+      subtitle="Completá los datos hablando, escribiendo o de forma manual"
       maxWidth="3xl"
     >
       <form onSubmit={handleGuardarPedido} className="space-y-5">
@@ -359,20 +390,39 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
           </div>
         )}
 
-        {/* Dictado: siempre prepara borrador, nunca crea automáticamente. */}
-        <div className="rounded-2xl border border-neutral-200 bg-neutral-50 p-4 space-y-3">
-          <div className="flex items-center gap-2 text-sm font-semibold"><Mic className="h-4 w-4"/> Dictar nuevo pedido</div>
-          <p className="text-xs text-neutral-600">Ej.: “Pedido para María González, dos camisas y un pantalón, seña de 5000”. También podés escribirlo.</p>
-          <textarea value={dictado} onChange={e=>setDictado(e.target.value)} rows={2} maxLength={1500}
-            placeholder="Describí el pedido..." className="w-full rounded-xl border border-neutral-300 bg-white p-3 text-sm outline-none" />
-          <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={alternarMicrofono} className="inline-flex items-center gap-2 rounded-xl border border-neutral-300 bg-white px-3 py-2 text-xs font-semibold">
-              {escuchando ? <MicOff className="h-4 w-4"/> : <Mic className="h-4 w-4"/>}{escuchando ? 'Detener' : 'Dictar'}</button>
-            <button type="button" disabled={!dictado.trim()} onClick={()=>aplicarDictado(dictado)} className="rounded-xl bg-neutral-900 px-3 py-2 text-xs font-semibold text-white disabled:opacity-40">Completar borrador</button>
+        {/* Dictado asistido: solamente completa el formulario; jamás guarda automáticamente. */}
+        <section className="rounded-2xl border border-neutral-200 bg-white p-4 space-y-3" aria-label="Carga por voz o texto">
+          <div className="flex items-center gap-2">
+            <WandSparkles className="w-4 h-4 text-neutral-800" />
+            <div>
+              <h3 className="text-sm font-bold">Dictá un pedido y revisá el borrador</h3>
+              <p className="text-xs text-neutral-500">Decí nombre, teléfono, prendas, importes y entrega. El pedido se guarda solo cuando tocás «Crear pedido».</p>
+            </div>
           </div>
-          {errorDictado && <p role="alert" className="text-xs text-rose-700">{errorDictado}</p>}
-          {resumenDictado && <p role="status" className="text-xs text-amber-800">{resumenDictado}</p>}
-        </div>
+          <textarea value={dictado} onChange={e => { setDictado(e.target.value); setDictadoAplicado(false); }}
+            rows={3} maxLength={2500}
+            className="w-full resize-y rounded-xl border border-neutral-300 p-3 text-sm outline-none focus:border-neutral-600"
+            placeholder="Ejemplo: Cliente María González, teléfono 3471555555, dos acolchados de 2 plazas a 12000 cada uno, seña 10000 en efectivo, entrega 15/11/2026" />
+          {speech.error && <p role="alert" className="text-xs text-rose-700">{speech.error}</p>}
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={speech.toggle} disabled={!speech.available && !speech.listening}
+              className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold disabled:opacity-40 ${speech.listening ? 'border-rose-300 bg-rose-50 text-rose-700' : 'border-neutral-300 bg-neutral-50 text-neutral-800'}`}>
+              {speech.listening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+              {speech.listening ? 'Detener' : 'Dictar datos'}
+            </button>
+            <button type="button" onClick={() => aplicarDictado()} disabled={!dictado.trim() || (dictadoAplicado && dictado === dictadoUltimoAplicado)}
+              className="rounded-xl bg-neutral-900 px-4 py-2 text-xs font-semibold text-white disabled:opacity-40">
+              Completar formulario
+            </button>
+          </div>
+          {dictadoAplicado && (
+            <div role="status" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 space-y-1">
+              <p className="font-bold">Borrador preparado. Revisá cliente, prendas, precios y entrega.</p>
+              {dictadoAvisos.map((a,i) => <p key={i}>• {a}</p>)}
+              <p>Podés editar o quitar prendas antes de confirmar el pedido. Si el dictado no entendió algo, completalo a mano.</p>
+            </div>
+          )}
+        </section>
 
         {/* 1. SELECCIÓN O ALTA RÁPIDA DE CLIENTE */}
         <div className="p-4 rounded-2xl bg-neutral-50 border border-neutral-200 space-y-3">
@@ -513,6 +563,7 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
                 aria-label="Seleccionar cliente registrado"
                 className="bg-white border border-neutral-300 focus:border-neutral-500 rounded-xl px-3 py-2 text-xs text-neutral-900 outline-none shadow-2xs font-medium cursor-pointer"
               >
+                <option value="">Seleccioná un cliente</option>
                 {clientesFiltrados.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.nombre} {c.apellido || ''} ({c.telefono}) - {c.id}
@@ -610,13 +661,16 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-neutral-700 mb-1">Precio ($)</label>
+                <label className="block text-[11px] font-bold text-neutral-700 mb-1">Precio por prenda ($)</label>
                 <input
                   type="number"
                   min="0"
                   step="100"
-                  value={nuevoPrecio}
-                  onChange={(e) => setNuevoPrecio(Number(e.target.value))}
+                  value={nuevoPrecioInput}
+                  onChange={(e) => setNuevoPrecioInput(e.target.value)}
+                  onFocus={(e) => e.currentTarget.select()}
+                  placeholder="Ej: 12000"
+                  inputMode="decimal"
                   className="w-full bg-neutral-50 border border-neutral-300 focus:border-neutral-500 rounded-xl px-3 py-2 text-xs text-neutral-900 font-mono font-bold outline-none"
                 />
               </div>
@@ -675,11 +729,9 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
                   </div>
 
                   <div className="flex items-center gap-3 shrink-0">
-                    <label className="flex items-center gap-1 text-[11px] text-neutral-500">
-                      $ <input type="number" min="1" step="1" aria-label={`Precio de ${p.tipo} ${idx + 1}`}
-                        value={p.precio} onChange={e => setPrendas(prev => prev.map(x => x.tempId === p.tempId ? {...x, precio: Number(e.target.value)} : x))}
-                        className="w-20 rounded-lg border border-neutral-300 bg-white px-2 py-1 font-mono font-bold text-neutral-900" />
-                    </label>
+                    <span className="font-mono font-bold text-neutral-900">
+                      {formatMoneda(p.precio)}
+                    </span>
                     <button
                       type="button"
                       onClick={() => handleEliminarPrenda(p.tempId)}
@@ -706,7 +758,7 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
               type="date"
               required
               value={fechaEstimada}
-              onChange={(e) => setFechaEstimada(e.target.value)}
+              onChange={(e) => { setFechaEstimada(e.target.value); setFechaPorConfirmar(false); }}
               className="w-full bg-white border border-neutral-300 rounded-xl px-3 py-2 text-xs text-neutral-900 outline-none font-mono font-semibold shadow-2xs"
             />
             <div className="flex gap-1.5 pt-1">
@@ -715,6 +767,7 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
                 onClick={() => {
                   const d = new Date(Date.now() + 86400000);
                   setFechaEstimada(d.toISOString().split('T')[0]);
+                  setFechaPorConfirmar(false);
                 }}
                 className="text-[11px] px-2.5 py-1 rounded-lg bg-white border border-neutral-300 text-neutral-700 hover:bg-neutral-100 font-medium cursor-pointer shadow-2xs"
               >
@@ -725,6 +778,7 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
                 onClick={() => {
                   const d = new Date(Date.now() + 2 * 86400000);
                   setFechaEstimada(d.toISOString().split('T')[0]);
+                  setFechaPorConfirmar(false);
                 }}
                 className="text-[11px] px-2.5 py-1 rounded-lg bg-white border border-neutral-300 text-neutral-700 hover:bg-neutral-100 font-medium cursor-pointer shadow-2xs"
               >
@@ -735,6 +789,7 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
                 onClick={() => {
                   const d = new Date(Date.now() + 3 * 86400000);
                   setFechaEstimada(d.toISOString().split('T')[0]);
+                  setFechaPorConfirmar(false);
                 }}
                 className="text-[11px] px-2.5 py-1 rounded-lg bg-white border border-neutral-300 text-neutral-700 hover:bg-neutral-100 font-medium cursor-pointer shadow-2xs"
               >
@@ -797,8 +852,11 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
                   type="number"
                   min="0"
                   max={totalCalculado}
-                  value={montoSenia}
-                  onChange={(e) => setMontoSenia(Number(e.target.value))}
+                  value={montoSeniaInput}
+                  onChange={(e) => setMontoSeniaInput(e.target.value)}
+                  onFocus={(e) => e.currentTarget.select()}
+                  placeholder="Ej: 5000"
+                  inputMode="decimal"
                   className="w-full bg-white border border-neutral-300 rounded-xl px-3 py-2 text-xs text-neutral-900 font-mono font-bold outline-none shadow-2xs"
                 />
               </div>

@@ -1,31 +1,47 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { AlertTriangle, UserCheck } from 'lucide-react';
 import { Cliente } from '../../types';
-import type { ClientDraft } from '../../utils/voiceDraft';
 import { Modal } from '../common/Modal';
 import { codificarQRCliente } from '../../utils/qr';
 import { storage } from '../../services/storage';
+import { parseDictation } from '../../utils/dictationParser';
+import { useSpeechDictation } from '../../hooks/useSpeechDictation';
+import { Mic, MicOff } from 'lucide-react';
 
 interface ClientModalProps {
   isOpen: boolean;
   onClose: () => void;
   clienteEditar?: Cliente | null;
-  initialDraft?: ClientDraft | null;
   onClientSaved: (cliente: Cliente) => void;
+  initialDictation?: string;
 }
 
 export const ClientModal: React.FC<ClientModalProps> = ({
   isOpen,
   onClose,
   clienteEditar,
-  initialDraft,
   onClientSaved,
+  initialDictation,
 }) => {
   const [nombre, setNombre] = useState('');
   const [apellido, setApellido] = useState('');
   const [telefono, setTelefono] = useState('');
   const [observaciones, setObservaciones] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [dictado, setDictado] = useState('');
+  const speech = useSpeechDictation(text => {
+    setDictado(prev => [prev, text].filter(Boolean).join(' ').slice(0, 1000));
+    aplicar(text);
+  });
+  const aplicar = (source: string = dictado) => {
+    const draft = parseDictation(source);
+    if (draft.nombre) setNombre(draft.nombre);
+    if (draft.apellido) setApellido(draft.apellido);
+    if (draft.telefono) setTelefono(draft.telefono);
+    if (!draft.nombre || !draft.telefono) setError('Revisá y completá nombre y teléfono antes de guardar.');
+    else setError(null);
+  };
+
 
   useEffect(() => {
     if (clienteEditar) {
@@ -34,13 +50,19 @@ export const ClientModal: React.FC<ClientModalProps> = ({
       setTelefono(clienteEditar.telefono || '');
       setObservaciones(clienteEditar.observaciones || '');
     } else {
-      setNombre(initialDraft?.nombre || '');
-      setApellido(initialDraft?.apellido || '');
-      setTelefono(initialDraft?.telefono || '');
+      setNombre('');
+      setApellido('');
+      setTelefono('');
       setObservaciones('');
     }
     setError(null);
-  }, [clienteEditar, isOpen, initialDraft]);
+    setDictado(isOpen ? (initialDictation || '') : '');
+    if (!isOpen) speech.stop();
+  }, [clienteEditar, isOpen, initialDictation]);
+
+  useEffect(() => {
+    if (isOpen && !clienteEditar && initialDictation?.trim()) aplicar(initialDictation);
+  }, [isOpen, clienteEditar, initialDictation]);
 
   // Detección en tiempo real de duplicados por teléfono normalizado
   const posibleDuplicado = useMemo(() => {
@@ -61,6 +83,10 @@ export const ClientModal: React.FC<ClientModalProps> = ({
       return;
     }
 
+    if (posibleDuplicado) {
+      setError('El teléfono ya existe. Buscá y seleccioná ese cliente para evitar duplicados.');
+      return;
+    }
     const id = clienteEditar ? clienteEditar.id : storage.generarSiguienteIdCliente();
     const clienteData: Cliente = {
       id,
@@ -86,6 +112,25 @@ export const ClientModal: React.FC<ClientModalProps> = ({
       maxWidth="md"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
+        {!clienteEditar && (
+          <div className="rounded-xl border border-neutral-200 p-3 space-y-2">
+            <p className="text-xs font-bold">Completar cliente por voz o texto</p>
+            <textarea rows={2} value={dictado} onChange={e => setDictado(e.target.value)}
+              placeholder="Nuevo cliente Laura Pérez, teléfono 3471555555"
+              className="w-full border border-neutral-300 rounded-lg p-2 text-sm" />
+            <div className="flex gap-2">
+              <button type="button" onClick={speech.toggle} disabled={!speech.available && !speech.listening}
+                className="flex items-center gap-1 rounded-lg border px-3 py-2 text-xs disabled:opacity-40">
+                {speech.listening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                {speech.listening ? 'Detener' : 'Dictar'}
+              </button>
+              <button type="button" onClick={() => aplicar()} disabled={!dictado.trim()}
+                className="rounded-lg bg-neutral-900 px-3 py-2 text-xs text-white disabled:opacity-40">Completar campos</button>
+            </div>
+            {speech.error && <p role="alert" className="text-xs text-rose-700">{speech.error}</p>}
+            <p className="text-[11px] text-neutral-500">Solo completa el borrador. Revisá antes de guardar.</p>
+          </div>
+        )}
         {error && (
           <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 text-xs rounded-xl font-medium">
             {error}

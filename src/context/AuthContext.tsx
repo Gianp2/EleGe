@@ -25,7 +25,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Fail closed: no se autorizan sesiones simuladas ni modo de previsualización.
     if (!isFirebaseConfigured) {
       setCurrentUser(null);
       setIsAuthorized(false);

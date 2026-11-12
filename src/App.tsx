@@ -23,7 +23,6 @@ import { QrCode } from 'lucide-react';
 import { LoginView } from './components/auth/LoginView';
 import { AuthLoadingScreen } from './components/auth/AuthLoadingScreen';
 import { AssistantPanel } from './components/assistant/AssistantPanel';
-import type { ClientDraft } from './utils/voiceDraft';
 
 export default function App() {
   const { currentUser, isAuthorized, loading, logout } = useAuth();
@@ -38,13 +37,13 @@ export default function App() {
 
   const [isNewOrderOpen, setIsNewOrderOpen] = useState(false);
   const [clientePreseleccionado, setClientePreseleccionado] = useState<Cliente | null>(null);
+  const [pedidoDictadoInicial, setPedidoDictadoInicial] = useState('');
+  const [clienteDictadoInicial, setClienteDictadoInicial] = useState('');
 
   const [selectedOrder, setSelectedOrder] = useState<Pedido | null>(null);
 
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [clienteEditar, setClienteEditar] = useState<Cliente | null>(null);
-  const [assistantClientDraft, setAssistantClientDraft] = useState<ClientDraft | null>(null);
-  const [assistantOrderText, setAssistantOrderText] = useState('');
   const [selectedClient, setSelectedClient] = useState<Cliente | null>(null);
 
   const [ticketModal, setTicketModal] = useState<{
@@ -170,7 +169,6 @@ export default function App() {
   };
 
   const handleOpenNewClient = () => {
-    setAssistantClientDraft(null);
     setClienteEditar(null);
     setIsClientModalOpen(true);
   };
@@ -345,15 +343,15 @@ export default function App() {
             pedidos={pedidos}
             clientes={clientes}
             onSelectOrder={(pedido) => setSelectedOrder(pedido)}
-            onNewClient={(draft) => {
-              setAssistantClientDraft(draft);
-              setClienteEditar(null);
-              setIsClientModalOpen(true);
-            }}
             onNewOrder={(text) => {
-              setAssistantOrderText(text);
               setClientePreseleccionado(null);
+              setPedidoDictadoInicial(text);
               setIsNewOrderOpen(true);
+            }}
+            onNewClient={(text) => {
+              setClienteEditar(null);
+              setClienteDictadoInicial(text);
+              setIsClientModalOpen(true);
             }}
           />
         )}
@@ -388,11 +386,11 @@ export default function App() {
         isOpen={isNewOrderOpen}
         onClose={() => {
           setIsNewOrderOpen(false);
-          setAssistantOrderText('');
           setClientePreseleccionado(null);
+          setPedidoDictadoInicial('');
         }}
+        initialDictation={pedidoDictadoInicial}
         clientePreseleccionado={clientePreseleccionado}
-        initialVoiceText={assistantOrderText}
         onOrderCreated={handleOrderCreated}
         onOpenCreateClientModal={() => setIsClientModalOpen(true)}
       />
@@ -420,10 +418,10 @@ export default function App() {
         onClose={() => {
           setIsClientModalOpen(false);
           setClienteEditar(null);
-          setAssistantClientDraft(null);
+          setClienteDictadoInicial('');
         }}
+        initialDictation={clienteDictadoInicial}
         clienteEditar={clienteEditar}
-        initialDraft={assistantClientDraft}
         onClientSaved={(cli) => {
           setClientePreseleccionado(cli);
           syncData();
