@@ -260,6 +260,50 @@
         }
       },
       "required": ["accion", "entidad", "entidadId", "detalles", "usuarioUid"]
+    },
+    "MovimientoCaja": {
+      "title": "MovimientoCaja",
+      "description": "Movimiento manual de ingreso o egreso de Caja eLeGe con trazabilidad y auditoría.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "tipo": { "type": "string", "enum": ["ingreso", "egreso"] },
+        "categoria": {
+          "type": "string",
+          "enum": [
+            "cobro_pedido",
+            "senia_pedido",
+            "ingreso_manual",
+            "ajuste_positivo",
+            "productos_limpieza",
+            "insumos",
+            "servicios",
+            "sueldos",
+            "mantenimiento",
+            "otros_gastos"
+          ]
+        },
+        "concepto": { "type": "string", "maxLength": 200 },
+        "monto": { "type": "number" },
+        "fecha": { "type": "string" },
+        "metodo": { "type": "string", "enum": ["efectivo", "transferencia", "debito", "credito", "otro"] },
+        "origen": { "type": "string", "enum": ["pedido_pago", "manual"] },
+        "creadoEn": { "type": "string" }
+      },
+      "required": ["id", "tipo", "categoria", "concepto", "monto", "fecha", "metodo", "origen", "creadoEn"]
+    },
+    "SesionCaja": {
+      "title": "SesionCaja",
+      "description": "Sesión de apertura, arqueo y cierre diario de caja con separación de efectivo físico.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "fecha": { "type": "string" },
+        "horaApertura": { "type": "string" },
+        "saldoInicialEfectivo": { "type": "number" },
+        "cerrada": { "type": "boolean" }
+      },
+      "required": ["id", "fecha", "horaApertura", "saldoInicialEfectivo", "cerrada"]
     }
   },
   "firestore": {
@@ -278,6 +322,14 @@
     "/pagos/{pagoId}": {
       "schema": { "$ref": "#/entities/Pago" },
       "description": "Movimientos de caja y cobros asociados"
+    },
+    "/movimientos_caja/{movimientoId}": {
+      "schema": { "$ref": "#/entities/MovimientoCaja" },
+      "description": "Ingresos manuales y egresos categorizados de caja"
+    },
+    "/sesiones_caja/{sesionId}": {
+      "schema": { "$ref": "#/entities/SesionCaja" },
+      "description": "Aperturas, arqueos y cierres de caja"
     },
     "/avisos_whatsapp/{avisoId}": {
       "schema": { "$ref": "#/entities/AvisoWhatsApp" },

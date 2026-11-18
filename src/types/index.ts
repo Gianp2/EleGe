@@ -45,6 +45,106 @@ export interface Pago {
   metodo: MetodoPago;
   nota?: string;
   esSenia?: boolean;
+  anulado?: boolean;
+  motivoAnulacion?: string;
+  anuladoAt?: string;
+}
+
+export type TipoMovimientoCaja = 'ingreso' | 'egreso';
+
+export type CategoriaMovimientoCaja =
+  | 'cobro_pedido'
+  | 'senia_pedido'
+  | 'ingreso_manual'
+  | 'ajuste_positivo'
+  | 'productos_limpieza'
+  | 'insumos'
+  | 'servicios'
+  | 'sueldos'
+  | 'mantenimiento'
+  | 'otros_gastos';
+
+export interface MovimientoCajaCambio {
+  fecha: string; // ISO string
+  motivo: string;
+  detalle: string;
+  montoAnterior?: number;
+  montoNuevo?: number;
+  conceptoAnterior?: string;
+  conceptoNuevo?: string;
+  metodoAnterior?: MetodoPago;
+  metodoNuevo?: MetodoPago;
+  categoriaAnterior?: CategoriaMovimientoCaja;
+  categoriaNuevo?: CategoriaMovimientoCaja;
+}
+
+export interface MovimientoCaja {
+  id: string; // ej: "CAJ-..." o "CAJ-PAG-..."
+  tipo: TipoMovimientoCaja;
+  categoria: CategoriaMovimientoCaja;
+  concepto: string;
+  monto: number;
+  fecha: string; // ISO string
+  metodo: MetodoPago;
+  pedidoId?: string;
+  codigoPedido?: string;
+  clienteId?: string;
+  clienteNombre?: string;
+  pagoIdRelacionado?: string;
+  observaciones?: string;
+  origen: 'pedido_pago' | 'manual';
+  anulado?: boolean;
+  motivoAnulacion?: string;
+  anuladoAt?: string;
+  historialCambios?: MovimientoCajaCambio[];
+  creadoEn: string;
+  actualizadoEn?: string;
+}
+
+export interface SesionCaja {
+  id: string; // ej: "SES-..."
+  fecha: string; // YYYY-MM-DD (fecha de apertura local)
+  horaApertura: string; // ISO string
+  saldoInicialEfectivo: number;
+  saldoInicialDigital?: number;
+  notasApertura?: string;
+  cerrada: boolean;
+  horaCierre?: string; // ISO string
+  arqueoRealEfectivo?: number;
+  diferenciaArqueo?: number;
+  observacionesCierre?: string;
+  resumenCierre?: {
+    ingresosEfectivo: number;
+    egresosEfectivo: number;
+    efectivoEsperado: number;
+    totalIngresos: number;
+    totalEgresos: number;
+    balanceNeto: number;
+    saldoTotalFinal: number;
+  };
+  historialAjustes?: Array<{
+    fecha: string;
+    saldoAnterior: number;
+    saldoNuevo: number;
+    motivo: string;
+  }>;
+}
+
+export interface ResumenCaja {
+  ingresosPeriodo: number;
+  egresosPeriodo: number;
+  balanceNetoPeriodo: number;
+  cantidadIngresos: number;
+  cantidadEgresos: number;
+  saldoInicialEfectivo: number;
+  saldoInicialDigital: number;
+  efectivoDisponible: number;
+  saldoDigitalDisponible: number;
+  saldoCajaTotal: number;
+  saldosPorCobrarClientes: number;
+  desgloseMetodos: Record<MetodoPago, { ingresos: number; egresos: number; neto: number }>;
+  desgloseEgresosCategoria: Record<string, number>;
+  sesionActiva: SesionCaja | null;
 }
 
 export interface RegistroAvisoWhatsApp {
@@ -129,6 +229,8 @@ export interface BackupMetadata {
   totalPrendas: number;
   totalPagos: number;
   importeTotalHistorico: number;
+  totalMovimientosCaja?: number;
+  totalSesionesCaja?: number;
 }
 
 export interface BackupPackage {
@@ -136,6 +238,8 @@ export interface BackupPackage {
   clientes: Cliente[];
   pedidos: Pedido[];
   configuracion: ConfiguracionSistema;
+  movimientosCaja?: MovimientoCaja[];
+  sesionesCaja?: SesionCaja[];
 }
 
 export interface BackupValidationResult {
@@ -150,6 +254,7 @@ export interface BackupValidationResult {
     totalPagos: number;
     importeTotal: number;
     versionEsquema: number;
+    totalMovimientosCaja?: number;
   };
   backupPackage?: BackupPackage;
 }

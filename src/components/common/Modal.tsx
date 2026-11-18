@@ -47,7 +47,7 @@ export const Modal: React.FC<ModalProps> = ({
   }[maxWidth];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto bg-neutral-900/60 backdrop-blur-xs">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto bg-neutral-900/60 backdrop-blur-xs">
       <div
         className="fixed inset-0"
         onClick={onClose}
@@ -55,29 +55,30 @@ export const Modal: React.FC<ModalProps> = ({
       />
       
       <div
-        className={`relative w-full ${widthClasses} bg-white border border-neutral-200 rounded-2xl shadow-2xl overflow-hidden my-auto z-10 flex flex-col max-h-[92vh] text-neutral-900 animate-in fade-in zoom-in-95 duration-150`}
+        className={`relative w-full ${widthClasses} bg-white border border-neutral-200 rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden sm:my-auto z-10 flex flex-col max-h-[92dvh] text-neutral-900`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
-        <div className="flex items-start justify-between p-4 sm:p-5 border-b border-neutral-200 bg-neutral-50/90 shrink-0">
-          <div>
-            <h2 className="text-base sm:text-lg font-bold text-neutral-900 tracking-tight">{title}</h2>
+        <div className="flex items-start justify-between gap-3 px-4 py-3.5 sm:p-5 border-b border-neutral-200 bg-neutral-50/95 shrink-0">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-base sm:text-lg font-bold text-neutral-900 tracking-tight break-words leading-snug">{title}</h2>
             {subtitle && (
-              <p className="text-xs text-neutral-500 mt-0.5">{subtitle}</p>
+              <p className="text-xs text-neutral-600 mt-0.5 break-words">{subtitle}</p>
             )}
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 text-neutral-400 hover:text-neutral-800 hover:bg-neutral-200 rounded-xl transition-colors cursor-pointer"
+            className="p-2 text-neutral-500 hover:text-neutral-900 hover:bg-neutral-200 rounded-xl transition-colors cursor-pointer shrink-0 min-w-[40px] min-h-[40px] flex items-center justify-center"
             title="Cerrar modal (Esc)"
+            aria-label="Cerrar"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Modal Body */}
-        <div className="p-4 sm:p-6 overflow-y-auto flex-1 bg-white">
+        <div className="p-4 sm:p-6 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-6 overflow-y-auto flex-1 bg-white min-w-0">
           {children}
         </div>
       </div>

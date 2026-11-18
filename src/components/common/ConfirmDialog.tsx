@@ -51,11 +51,11 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 
         {children}
 
-        <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-neutral-200">
+        <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-end gap-2 pt-3 border-t border-neutral-200">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-xs font-semibold text-neutral-600 hover:text-neutral-900 bg-neutral-100 hover:bg-neutral-200 rounded-xl transition-colors cursor-pointer"
+            className="w-full sm:w-auto px-4 py-2.5 text-xs sm:text-sm font-semibold text-neutral-700 hover:text-neutral-900 bg-neutral-100 hover:bg-neutral-200 rounded-xl transition-colors cursor-pointer"
           >
             {cancelText}
           </button>
@@ -65,7 +65,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
               onConfirm();
               onClose();
             }}
-            className={`px-4 py-2 text-xs font-bold rounded-xl transition-colors cursor-pointer shadow-xs ${getButtonStyles()}`}
+            className={`w-full sm:w-auto px-4 py-2.5 text-xs sm:text-sm font-bold rounded-xl transition-colors cursor-pointer shadow-xs ${getButtonStyles()}`}
           >
             {confirmText}
           </button>

@@ -26,7 +26,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   ];
 
   return (
-    <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 grid grid-cols-5 min-w-0 select-none border-t border-neutral-200 bg-white/95 px-1 pt-2 pb-[calc(env(safe-area-inset-bottom,0px)+12px)] backdrop-blur-md shadow-lg no-print">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 border-t border-neutral-200 backdrop-blur-md px-1 grid grid-cols-5 min-h-16 select-none no-print shadow-lg safe-bottom">
       {tabs.map((tab) => {
         const Icon = tab.icon;
         const isActive = activeTab === tab.id;
@@ -35,14 +35,14 @@ export const BottomNav: React.FC<BottomNavProps> = ({
             key={tab.id}
             type="button"
             onClick={() => onSelectTab(tab.id)}
-            className={`flex flex-col items-center justify-center min-w-0 min-h-14 py-1 text-[11px] sm:text-xs font-medium transition-colors cursor-pointer select-none ${
-              isActive ? 'text-neutral-950 font-bold' : 'text-neutral-500 hover:text-neutral-800'
+            className={`flex flex-col items-center justify-center min-h-[52px] py-1.5 px-0.5 text-[11px] sm:text-xs transition-colors cursor-pointer select-none min-w-0 ${
+              isActive ? 'text-neutral-950 font-bold' : 'text-neutral-600 hover:text-neutral-900 font-medium'
             }`}
           >
-            <div className={`p-1 rounded-lg transition-colors ${isActive ? 'bg-neutral-100 text-neutral-950' : ''}`}>
-              <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
+            <div className={`px-2 py-1 rounded-xl transition-colors ${isActive ? 'bg-neutral-100 text-neutral-950' : ''}`}>
+              <Icon className="w-5 h-5" />
             </div>
-            <span className="truncate max-w-[95%] leading-tight mt-0.5">{tab.label}</span>
+            <span className="leading-tight mt-0.5 text-center truncate max-w-full">{tab.label}</span>
           </button>
         );
       })}

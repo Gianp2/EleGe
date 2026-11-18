@@ -9,7 +9,6 @@ import {
   AlertTriangle,
   Check,
   X,
-  Mic, MicOff, WandSparkles,
 } from 'lucide-react';
 import { Cliente, Pedido, Prenda, TipoServicio, MetodoPago, Pago } from '../../types';
 import { Modal } from '../common/Modal';
@@ -20,8 +19,9 @@ import {
 } from '../../utils/formatters';
 import { codificarQRPedido, codificarQRPrenda, codificarQRCliente } from '../../utils/qr';
 import { storage } from '../../services/storage';
-import { parseDictation } from '../../utils/dictationParser';
-import { useSpeechDictation } from '../../hooks/useSpeechDictation';
+import { OrderDictationPanel } from './OrderDictationPanel';
+import { OrderDictationDraft } from '../../utils/voiceOrderParser';
+import { NumericInput } from '../common/NumericInput';
 
 interface OrderCreateModalProps {
   isOpen: boolean;
@@ -29,7 +29,6 @@ interface OrderCreateModalProps {
   clientePreseleccionado?: Cliente | null;
   onOrderCreated: (pedido: Pedido) => void;
   onOpenCreateClientModal?: () => void;
-  initialDictation?: string;
 }
 
 const PRENDAS_RAPIDAS = [
@@ -50,7 +49,6 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
   clientePreseleccionado,
   onOrderCreated,
   onOpenCreateClientModal,
-  initialDictation,
 }) => {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [clienteId, setClienteId] = useState<string>('');
@@ -90,29 +88,15 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
   const [nuevoTipo, setNuevoTipo] = useState('');
   const [nuevaDescripcion, setNuevaDescripcion] = useState('');
   const [nuevoServicio, setNuevoServicio] = useState<TipoServicio>('lavado_planchado');
-  const [nuevoPrecioInput, setNuevoPrecioInput] = useState<string>(String(SERVICIOS_INFO['lavado_planchado'].precioSugerido));
-  const nuevoPrecio = nuevoPrecioInput.trim() === '' ? 0 : Number(nuevoPrecioInput);
-  const setNuevoPrecio = (value: number) => setNuevoPrecioInput(String(value));
+  const [nuevoPrecio, setNuevoPrecio] = useState<number>(SERVICIOS_INFO['lavado_planchado'].precioSugerido);
   const [nuevasObservaciones, setNuevasObservaciones] = useState('');
 
   // Seña inicial
   const [registrarSenia, setRegistrarSenia] = useState(false);
-  const [montoSeniaInput, setMontoSeniaInput] = useState<string>('');
-  const montoSenia = montoSeniaInput.trim() === '' ? 0 : Number(montoSeniaInput);
-  const setMontoSenia = (value: number) => setMontoSeniaInput(String(value));
+  const [montoSenia, setMontoSenia] = useState<number>(0);
   const [metodoPagoSenia, setMetodoPagoSenia] = useState<MetodoPago>('efectivo');
 
   const [error, setError] = useState<string | null>(null);
-  const [dictado, setDictado] = useState('');
-  const [dictadoAvisos, setDictadoAvisos] = useState<string[]>([]);
-  const [dictadoAplicado, setDictadoAplicado] = useState(false);
-  const [fechaPorConfirmar, setFechaPorConfirmar] = useState(false);
-  const [dictadoUltimoAplicado, setDictadoUltimoAplicado] = useState('');
-  const speech = useSpeechDictation(text => {
-    setDictado(prev => [prev, text].filter(Boolean).join(' ').slice(0, 2500));
-    aplicarDictado(text);
-  });
-
 
   useEffect(() => {
     if (isOpen) {
@@ -120,86 +104,13 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
       setClientes(allClientes);
       if (clientePreseleccionado) {
         setClienteId(clientePreseleccionado.id);
-      } else {
-        setClienteId('');
+      } else if (allClientes.length > 0 && !clienteId) {
+        setClienteId(allClientes[0].id);
       }
       setError(null);
       setMostrarAltaRapida(false);
-      setFechaPorConfirmar(false);
     }
   }, [isOpen, clientePreseleccionado]);
-
-  useEffect(() => {
-    if (!isOpen) {
-      speech.stop();
-      return;
-    }
-    setDictado(initialDictation || '');
-    setDictadoAplicado(false);
-    setDictadoUltimoAplicado('');
-    setDictadoAvisos([]);
-  }, [isOpen, initialDictation]);
-
-  const aplicarDictado = (source: string = dictado) => {
-    const entrada = source.trim();
-    if (!entrada || entrada === dictadoUltimoAplicado) return;
-    const draft = parseDictation(source);
-    const avisos = [...draft.pendientes];
-    const allClientes = storage.getClientes();
-    const phoneDigits = (draft.telefono || '').replace(/\D/g, '');
-    const existingPhone = phoneDigits ? allClientes.find(c => c.telefono.replace(/\D/g, '') === phoneDigits) : undefined;
-    const byName = draft.nombre ? allClientes.filter(c =>
-      `${c.nombre} ${c.apellido || ''}`.trim().toLocaleLowerCase('es-AR') ===
-      `${draft.nombre} ${draft.apellido || ''}`.trim().toLocaleLowerCase('es-AR')) : [];
-    if (existingPhone) {
-      setClienteId(existingPhone.id);
-      if (draft.nombre && existingPhone.nombre.toLocaleLowerCase('es-AR') !== draft.nombre.toLocaleLowerCase('es-AR')) {
-        avisos.push('El teléfono corresponde a otro nombre: verificá la identidad del cliente.');
-      }
-      setMostrarAltaRapida(false);
-    } else if (byName.length === 1 && !phoneDigits) {
-      setClienteId(byName[0].id);
-      setMostrarAltaRapida(false);
-      avisos.push('Revisá que sea el cliente correcto antes de guardar.');
-    } else if (draft.nombre || draft.telefono) {
-      setMostrarAltaRapida(true);
-      setClienteId('');
-      if (draft.nombre) setRapidoNombre(draft.nombre);
-      if (draft.apellido) setRapidoApellido(draft.apellido);
-      if (draft.telefono) setRapidoTelefono(draft.telefono);
-      avisos.push('Cliente nuevo: revisá y pulsá «Crear y Seleccionar» antes de guardar el pedido.');
-      if (byName.length > 1) avisos.push('Hay varios clientes con ese nombre: confirmá su teléfono.');
-    }
-    const listos = draft.prendas.filter(p => p.precio !== null && p.precio > 0);
-    if (listos.length) {
-      setPrendas(prev => [...prev, ...listos.map(p => ({
-        tempId: `voz_${Date.now()}_${Math.random().toString(36).slice(2,8)}`,
-        tipo: p.tipo, descripcion: p.descripcion, servicio: p.servicio, precio: p.precio!,
-      }))]);
-    }
-    const sinPrecio = draft.prendas.find(p => p.precio === null);
-    if (sinPrecio) {
-      setNuevoTipo(sinPrecio.tipo);
-      setNuevoServicio(sinPrecio.servicio);
-      setNuevoPrecio(0);
-      avisos.push('La primera prenda sin precio quedó preparada abajo. Completá su precio y agregala.');
-    }
-    if (draft.senia !== undefined) {
-      setRegistrarSenia(draft.senia > 0);
-      setMontoSenia(draft.senia);
-    }
-    if (draft.metodoPago) setMetodoPagoSenia(draft.metodoPago);
-    if (draft.fecha) { setFechaEstimada(draft.fecha); setFechaPorConfirmar(false); }
-    else if (draft.pendientes.some(x => x.includes('fecha de entrega'))) setFechaPorConfirmar(true);
-    setDictadoAvisos(avisos.length ? avisos : ['Datos incorporados al borrador. Revisalos antes de confirmar.']);
-    setDictadoAplicado(true);
-    setDictadoUltimoAplicado(entrada);
-    setError(null);
-  };
-
-  useEffect(() => {
-    if (isOpen && initialDictation?.trim()) aplicarDictado(initialDictation);
-  }, [isOpen, initialDictation]);
 
   // Actualizar precio sugerido al cambiar servicio
   const handleCambioServicio = (serv: TipoServicio) => {
@@ -259,10 +170,6 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
       return;
     }
 
-    if (posibleDuplicadoAlta) {
-      setErrorAltaRapida('Ese teléfono ya pertenece a otro cliente. Seleccionalo en lugar de duplicarlo.');
-      return;
-    }
     const nuevoId = storage.generarSiguienteIdCliente();
     const nuevoCliente: Cliente = {
       id: nuevoId,
@@ -289,16 +196,71 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
     setMostrarAltaRapida(false);
   };
 
+  // Aplicar borrador editable de dictado al formulario sin guardar automáticamente
+  const handleApplyVoiceDraft = (draft: OrderDictationDraft) => {
+    if (draft.clienteExistente) {
+      setClienteId(draft.clienteExistente.id);
+      setMostrarAltaRapida(false);
+    } else if (draft.clienteNuevo && (draft.clienteNuevo.nombre || draft.clienteNuevo.telefono)) {
+      setRapidoNombre(draft.clienteNuevo.nombre || '');
+      setRapidoApellido(draft.clienteNuevo.apellido || '');
+      setRapidoTelefono(draft.clienteNuevo.telefono || '');
+      setMostrarAltaRapida(true);
+    }
+
+    if (draft.prendas.length > 0) {
+      const expandidas: typeof prendas = [];
+      draft.prendas.forEach((item) => {
+        const cant = Math.max(1, item.cantidad);
+        const unitPrice = item.precioUnitario ?? SERVICIOS_INFO[item.servicio]?.precioSugerido ?? 0;
+        for (let i = 0; i < cant; i++) {
+          expandidas.push({
+            tempId: `tmp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}_${i}`,
+            tipo: item.tipo,
+            descripcion: item.descripcion,
+            servicio: item.servicio,
+            precio: unitPrice,
+            observaciones: item.observaciones,
+          });
+        }
+      });
+      setPrendas((prev) => [...prev, ...expandidas]);
+    }
+
+    if (draft.fechaEstimadaEntrega) {
+      setFechaEstimada(draft.fechaEstimadaEntrega);
+    }
+
+    if (draft.observacionesGenerales) {
+      setObservacionesGenerales((prev) =>
+        prev ? `${prev}. ${draft.observacionesGenerales}` : draft.observacionesGenerales
+      );
+    }
+
+    if (draft.senia) {
+      setRegistrarSenia(true);
+      if (draft.senia.esPagoTotal) {
+        const totalDraft = draft.prendas.reduce(
+          (acc, p) => acc + Math.max(1, p.cantidad) * (p.precioUnitario ?? 0),
+          0
+        );
+        if (totalDraft > 0) setMontoSenia(totalDraft);
+      } else if (draft.senia.monto !== null && draft.senia.monto > 0) {
+        setMontoSenia(draft.senia.monto);
+      }
+      if (draft.senia.metodo) {
+        setMetodoPagoSenia(draft.senia.metodo);
+      }
+    }
+
+    setError(null);
+  };
+
   const totalCalculado = prendas.reduce((acc, p) => acc + p.precio, 0);
   const saldoCalculado = registrarSenia ? Math.max(0, totalCalculado - montoSenia) : totalCalculado;
 
   const handleGuardarPedido = (e: React.FormEvent) => {
     e.preventDefault();
-    if (speech.listening) { setError('Detené el dictado antes de confirmar el pedido.'); return; }
-    if (fechaPorConfirmar) {
-      setError('Confirmá la fecha de entrega. El dictado mencionó un día sin fecha exacta.');
-      return;
-    }
     if (!clienteId) {
       setError('Debes seleccionar o crear un cliente para el pedido.');
       return;
@@ -307,11 +269,7 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
       setError('Debes agregar al menos una prenda al pedido.');
       return;
     }
-    if (mostrarAltaRapida) {
-      setError('Primero creá o seleccioná el cliente antes de guardar el pedido.');
-      return;
-    }
-    if (registrarSenia && (montoSenia < 0 || montoSenia > totalCalculado)) {
+    if (registrarSenia && montoSenia > totalCalculado) {
       setError('La seña no puede superar el monto total del pedido.');
       return;
     }
@@ -379,8 +337,8 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Nuevo pedido"
-      subtitle="Completá los datos hablando, escribiendo o de forma manual"
+      title="Nuevo Pedido de Lavandería"
+      subtitle="Recepción de prendas, asignación de servicios y cálculo de importe"
       maxWidth="3xl"
     >
       <form onSubmit={handleGuardarPedido} className="space-y-5">
@@ -390,45 +348,14 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
           </div>
         )}
 
-        {/* Dictado asistido: solamente completa el formulario; jamás guarda automáticamente. */}
-        <section className="rounded-2xl border border-neutral-200 bg-white p-4 space-y-3" aria-label="Carga por voz o texto">
-          <div className="flex items-center gap-2">
-            <WandSparkles className="w-4 h-4 text-neutral-800" />
-            <div>
-              <h3 className="text-sm font-bold">Dictá un pedido y revisá el borrador</h3>
-              <p className="text-xs text-neutral-500">Decí nombre, teléfono, prendas, importes y entrega. El pedido se guarda solo cuando tocás «Crear pedido».</p>
-            </div>
-          </div>
-          <textarea value={dictado} onChange={e => { setDictado(e.target.value); setDictadoAplicado(false); }}
-            rows={3} maxLength={2500}
-            className="w-full resize-y rounded-xl border border-neutral-300 p-3 text-sm outline-none focus:border-neutral-600"
-            placeholder="Ejemplo: Cliente María González, teléfono 3471555555, dos acolchados de 2 plazas a 12000 cada uno, seña 10000 en efectivo, entrega 15/11/2026" />
-          {speech.error && <p role="alert" className="text-xs text-rose-700">{speech.error}</p>}
-          <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={speech.toggle} disabled={!speech.available && !speech.listening}
-              className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold disabled:opacity-40 ${speech.listening ? 'border-rose-300 bg-rose-50 text-rose-700' : 'border-neutral-300 bg-neutral-50 text-neutral-800'}`}>
-              {speech.listening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-              {speech.listening ? 'Detener' : 'Dictar datos'}
-            </button>
-            <button type="button" onClick={() => aplicarDictado()} disabled={!dictado.trim() || (dictadoAplicado && dictado === dictadoUltimoAplicado)}
-              className="rounded-xl bg-neutral-900 px-4 py-2 text-xs font-semibold text-white disabled:opacity-40">
-              Completar formulario
-            </button>
-          </div>
-          {dictadoAplicado && (
-            <div role="status" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 space-y-1">
-              <p className="font-bold">Borrador preparado. Revisá cliente, prendas, precios y entrega.</p>
-              {dictadoAvisos.map((a,i) => <p key={i}>• {a}</p>)}
-              <p>Podés editar o quitar prendas antes de confirmar el pedido. Si el dictado no entendió algo, completalo a mano.</p>
-            </div>
-          )}
-        </section>
+        {/* DICTADO POR VOZ O TEXTO (BORRADOR EDITABLE) */}
+        <OrderDictationPanel clientes={clientes} onApplyDraft={handleApplyVoiceDraft} />
 
         {/* 1. SELECCIÓN O ALTA RÁPIDA DE CLIENTE */}
-        <div className="p-4 rounded-2xl bg-neutral-50 border border-neutral-200 space-y-3">
-          <div className="flex items-center justify-between">
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-neutral-50 border border-neutral-200 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="text-xs font-bold text-neutral-800 flex items-center gap-1.5">
-              <User className="w-4 h-4 text-neutral-600" />
+              <User className="w-4 h-4 text-neutral-600 shrink-0" />
               Cliente del Pedido
             </span>
 
@@ -436,9 +363,9 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
               <button
                 type="button"
                 onClick={() => setMostrarAltaRapida(true)}
-                className="text-xs text-neutral-900 font-bold hover:underline flex items-center gap-1 cursor-pointer bg-white px-2.5 py-1 rounded-lg border border-neutral-300 shadow-2xs hover:bg-neutral-100"
+                className="text-xs text-neutral-900 font-bold hover:underline flex items-center gap-1 cursor-pointer bg-white px-2.5 py-1.5 rounded-lg border border-neutral-300 shadow-2xs hover:bg-neutral-100"
               >
-                <UserPlus className="w-3.5 h-3.5 text-neutral-800" />
+                <UserPlus className="w-3.5 h-3.5 text-neutral-800 shrink-0" />
                 <span>+ Alta Rápida de Cliente</span>
               </button>
             ) : (
@@ -450,7 +377,7 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
                 }}
                 className="text-xs text-neutral-500 font-bold hover:text-neutral-900 flex items-center gap-1 cursor-pointer"
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="w-3.5 h-3.5 shrink-0" />
                 <span>Cerrar Alta Rápida</span>
               </button>
             )}
@@ -458,12 +385,12 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
 
           {/* Formulario Inline de Alta Rápida (Sin perder el borrador de prendas) */}
           {mostrarAltaRapida ? (
-            <div className="p-3.5 bg-white border border-neutral-300 rounded-xl space-y-3 shadow-2xs animate-fadeIn">
-              <div className="flex items-center justify-between border-b border-neutral-100 pb-2">
+            <div className="p-3.5 bg-white border border-neutral-300 rounded-xl space-y-3 shadow-2xs">
+              <div className="flex flex-wrap items-center justify-between gap-1 border-b border-neutral-100 pb-2">
                 <span className="text-xs font-bold text-neutral-900">
-                  Nuevo Cliente (Alta Express sin salir del pedido)
+                  Nuevo Cliente (Alta Express)
                 </span>
-                <span className="text-[11px] text-neutral-500">Solo Nombre y Teléfono obligatorios</span>
+                <span className="text-[11px] text-neutral-500">Nombre y Teléfono obligatorios</span>
               </div>
 
               {errorAltaRapida && (
@@ -528,18 +455,18 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
                 </div>
               )}
 
-              <div className="flex items-center justify-end gap-2 pt-1">
+              <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-end gap-2 pt-1">
                 <button
                   type="button"
                   onClick={() => setMostrarAltaRapida(false)}
-                  className="px-3 py-1.5 text-xs text-neutral-600 hover:text-neutral-900 cursor-pointer"
+                  className="w-full sm:w-auto px-3 py-2 text-xs text-neutral-600 hover:text-neutral-900 cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="button"
                   onClick={handleGuardarAltaRapida}
-                  className="inline-flex items-center gap-1 px-4 py-1.5 bg-neutral-900 text-white font-bold text-xs rounded-lg hover:bg-neutral-800 transition-colors cursor-pointer shadow-2xs"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-1 px-4 py-2 bg-neutral-900 text-white font-bold text-xs rounded-lg hover:bg-neutral-800 transition-colors cursor-pointer shadow-2xs"
                 >
                   <Check className="w-3.5 h-3.5" />
                   <span>Crear y Seleccionar</span>
@@ -561,9 +488,8 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
                 value={clienteId}
                 onChange={(e) => setClienteId(e.target.value)}
                 aria-label="Seleccionar cliente registrado"
-                className="bg-white border border-neutral-300 focus:border-neutral-500 rounded-xl px-3 py-2 text-xs text-neutral-900 outline-none shadow-2xs font-medium cursor-pointer"
+                className="w-full bg-white border border-neutral-300 focus:border-neutral-500 rounded-xl px-3 py-2 text-xs text-neutral-900 outline-none shadow-2xs font-medium cursor-pointer"
               >
-                <option value="">Seleccioná un cliente</option>
                 {clientesFiltrados.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.nombre} {c.apellido || ''} ({c.telefono}) - {c.id}
@@ -574,24 +500,24 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
           )}
 
           {clienteSeleccionado && !mostrarAltaRapida && (
-            <div className="flex items-center justify-between text-xs text-neutral-600 bg-white p-2.5 rounded-xl border border-neutral-200 shadow-2xs">
-              <span>
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-neutral-600 bg-white p-2.5 rounded-xl border border-neutral-200 shadow-2xs">
+              <span className="min-w-0 break-words">
                 Asignado a:{' '}
                 <strong className="text-neutral-900 font-bold">
                   {clienteSeleccionado.nombre} {clienteSeleccionado.apellido || ''}
                 </strong>
-                <span className="ml-2 font-mono text-[11px] text-neutral-500">({clienteSeleccionado.id})</span>
+                <span className="ml-1.5 font-mono text-[11px] text-neutral-500">({clienteSeleccionado.id})</span>
               </span>
-              <span className="font-mono text-neutral-700 font-bold">{clienteSeleccionado.telefono}</span>
+              <span className="font-mono text-neutral-700 font-bold shrink-0">{clienteSeleccionado.telefono}</span>
             </div>
           )}
         </div>
 
         {/* 2. AGREGADOR DE PRENDAS */}
-        <div className="p-4 rounded-2xl bg-neutral-50 border border-neutral-200 space-y-3">
-          <div className="flex items-center justify-between">
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-neutral-50 border border-neutral-200 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="text-xs font-bold text-neutral-800 flex items-center gap-1.5">
-              <Shirt className="w-4 h-4 text-neutral-600" />
+              <Shirt className="w-4 h-4 text-neutral-600 shrink-0" />
               Prendas a Procesar ({prendas.length})
             </span>
             <span className="text-xs font-mono font-extrabold text-neutral-900">
@@ -599,14 +525,14 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
             </span>
           </div>
 
-          {/* Atajos de prendas comunes */}
-          <div className="flex flex-wrap gap-1.5">
+          {/* Atajos de prendas comunes (deslizable en móvil) */}
+          <div className="flex sm:flex-wrap gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
             {PRENDAS_RAPIDAS.map((item) => (
               <button
                 key={item}
                 type="button"
                 onClick={() => setNuevoTipo(item)}
-                className="px-2.5 py-1 text-[11px] font-medium rounded-lg bg-white hover:bg-neutral-100 text-neutral-700 border border-neutral-300 transition-colors shadow-2xs cursor-pointer"
+                className="shrink-0 min-h-[34px] px-2.5 py-1 text-[11px] font-medium rounded-lg bg-white hover:bg-neutral-100 text-neutral-700 border border-neutral-300 transition-colors shadow-2xs cursor-pointer whitespace-nowrap"
               >
                 + {item}
               </button>
@@ -625,7 +551,7 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
                   value={nuevoTipo}
                   onChange={(e) => setNuevoTipo(e.target.value)}
                   placeholder="Ej: Camisa de vestir, Traje, Pantalón"
-                  className="w-full bg-neutral-50 border border-neutral-300 focus:border-neutral-500 rounded-xl px-3 py-2 text-xs text-neutral-900 outline-none"
+                  className="w-full min-h-[40px] bg-neutral-50 border border-neutral-300 focus:border-neutral-500 rounded-xl px-3 py-2 text-xs text-neutral-900 outline-none"
                 />
               </div>
 
@@ -638,7 +564,7 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
                   value={nuevaDescripcion}
                   onChange={(e) => setNuevaDescripcion(e.target.value)}
                   placeholder="Ej: Azul marino Zara talle M"
-                  className="w-full bg-neutral-50 border border-neutral-300 focus:border-neutral-500 rounded-xl px-3 py-2 text-xs text-neutral-900 outline-none"
+                  className="w-full min-h-[40px] bg-neutral-50 border border-neutral-300 focus:border-neutral-500 rounded-xl px-3 py-2 text-xs text-neutral-900 outline-none"
                 />
               </div>
             </div>
@@ -650,7 +576,7 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
                   value={nuevoServicio}
                   onChange={(e) => handleCambioServicio(e.target.value as TipoServicio)}
                   aria-label="Servicio de lavandería para la prenda"
-                  className="w-full bg-neutral-50 border border-neutral-300 focus:border-neutral-500 rounded-xl px-3 py-2 text-xs text-neutral-900 outline-none font-medium cursor-pointer"
+                  className="w-full min-h-[40px] bg-neutral-50 border border-neutral-300 focus:border-neutral-500 rounded-xl px-3 py-2 text-xs text-neutral-900 outline-none font-medium cursor-pointer"
                 >
                   {Object.entries(SERVICIOS_INFO).map(([key, info]) => (
                     <option key={key} value={key}>
@@ -661,17 +587,13 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-neutral-700 mb-1">Precio por prenda ($)</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="100"
-                  value={nuevoPrecioInput}
-                  onChange={(e) => setNuevoPrecioInput(e.target.value)}
-                  onFocus={(e) => e.currentTarget.select()}
-                  placeholder="Ej: 12000"
-                  inputMode="decimal"
-                  className="w-full bg-neutral-50 border border-neutral-300 focus:border-neutral-500 rounded-xl px-3 py-2 text-xs text-neutral-900 font-mono font-bold outline-none"
+                <label className="block text-[11px] font-bold text-neutral-700 mb-1">Precio ($)</label>
+                <NumericInput
+                  min={0}
+                  value={nuevoPrecio}
+                  onChange={(val) => setNuevoPrecio(val)}
+                  aria-label="Precio de la prenda"
+                  className="w-full min-h-[40px] bg-neutral-50 border border-neutral-300 focus:border-neutral-500 rounded-xl px-3 py-2 text-xs text-neutral-900 font-mono font-bold outline-none"
                 />
               </div>
             </div>
@@ -685,7 +607,7 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
                 value={nuevasObservaciones}
                 onChange={(e) => setNuevasObservaciones(e.target.value)}
                 placeholder="Ej: Mancha de café en puño derecho, botón faltante"
-                className="w-full bg-neutral-50 border border-neutral-300 focus:border-neutral-500 rounded-xl px-3 py-2 text-xs text-neutral-800 outline-none"
+                className="w-full min-h-[40px] bg-neutral-50 border border-neutral-300 focus:border-neutral-500 rounded-xl px-3 py-2 text-xs text-neutral-800 outline-none"
               />
             </div>
 
@@ -693,7 +615,7 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
               <button
                 type="button"
                 onClick={handleAgregarPrenda}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-xs rounded-xl transition-all cursor-pointer shadow-xs active:scale-98"
+                className="w-full sm:w-auto min-h-[42px] inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-xs rounded-xl transition-colors cursor-pointer shadow-xs"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Agregar prenda al pedido</span>
@@ -707,11 +629,11 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
               {prendas.map((p, idx) => (
                 <div
                   key={p.tempId}
-                  className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-neutral-200 text-xs shadow-2xs"
+                  className="flex items-start justify-between gap-2 p-2.5 rounded-xl bg-white border border-neutral-200 text-xs shadow-2xs"
                 >
-                  <div className="flex-1 min-w-0 pr-2">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-neutral-900 truncate">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="font-bold text-neutral-900 break-words">
                         {idx + 1}. {p.tipo}
                       </span>
                       <span className="text-[11px] text-neutral-500">
@@ -719,23 +641,23 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
                       </span>
                     </div>
                     {p.descripcion && (
-                      <p className="text-[11px] text-neutral-600 truncate">{p.descripcion}</p>
+                      <p className="text-[11px] text-neutral-600 break-words">{p.descripcion}</p>
                     )}
                     {p.observaciones && (
-                      <p className="text-[11px] text-amber-700 font-medium truncate">
+                      <p className="text-[11px] text-amber-700 font-medium break-words">
                         Obs: {p.observaciones}
                       </p>
                     )}
                   </div>
 
-                  <div className="flex items-center gap-3 shrink-0">
+                  <div className="flex items-center gap-2 shrink-0">
                     <span className="font-mono font-bold text-neutral-900">
                       {formatMoneda(p.precio)}
                     </span>
                     <button
                       type="button"
                       onClick={() => handleEliminarPrenda(p.tempId)}
-                      className="p-1 text-neutral-400 hover:text-rose-600 rounded-lg transition-colors cursor-pointer"
+                      className="p-1.5 text-neutral-400 hover:text-rose-600 rounded-lg transition-colors cursor-pointer"
                       title="Quitar prenda"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -758,18 +680,17 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
               type="date"
               required
               value={fechaEstimada}
-              onChange={(e) => { setFechaEstimada(e.target.value); setFechaPorConfirmar(false); }}
+              onChange={(e) => setFechaEstimada(e.target.value)}
               className="w-full bg-white border border-neutral-300 rounded-xl px-3 py-2 text-xs text-neutral-900 outline-none font-mono font-semibold shadow-2xs"
             />
-            <div className="flex gap-1.5 pt-1">
+            <div className="grid grid-cols-3 sm:flex sm:flex-wrap gap-1.5 pt-1">
               <button
                 type="button"
                 onClick={() => {
                   const d = new Date(Date.now() + 86400000);
                   setFechaEstimada(d.toISOString().split('T')[0]);
-                  setFechaPorConfirmar(false);
                 }}
-                className="text-[11px] px-2.5 py-1 rounded-lg bg-white border border-neutral-300 text-neutral-700 hover:bg-neutral-100 font-medium cursor-pointer shadow-2xs"
+                className="min-h-[38px] text-xs px-2.5 py-1.5 rounded-lg bg-white border border-neutral-300 text-neutral-700 hover:bg-neutral-100 font-medium cursor-pointer shadow-2xs text-center"
               >
                 Mañana
               </button>
@@ -778,9 +699,8 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
                 onClick={() => {
                   const d = new Date(Date.now() + 2 * 86400000);
                   setFechaEstimada(d.toISOString().split('T')[0]);
-                  setFechaPorConfirmar(false);
                 }}
-                className="text-[11px] px-2.5 py-1 rounded-lg bg-white border border-neutral-300 text-neutral-700 hover:bg-neutral-100 font-medium cursor-pointer shadow-2xs"
+                className="min-h-[38px] text-xs px-2.5 py-1.5 rounded-lg bg-white border border-neutral-300 text-neutral-700 hover:bg-neutral-100 font-medium cursor-pointer shadow-2xs text-center"
               >
                 En 48 hs
               </button>
@@ -789,16 +709,15 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
                 onClick={() => {
                   const d = new Date(Date.now() + 3 * 86400000);
                   setFechaEstimada(d.toISOString().split('T')[0]);
-                  setFechaPorConfirmar(false);
                 }}
-                className="text-[11px] px-2.5 py-1 rounded-lg bg-white border border-neutral-300 text-neutral-700 hover:bg-neutral-100 font-medium cursor-pointer shadow-2xs"
+                className="min-h-[38px] text-xs px-2.5 py-1.5 rounded-lg bg-white border border-neutral-300 text-neutral-700 hover:bg-neutral-100 font-medium cursor-pointer shadow-2xs text-center"
               >
                 En 72 hs
               </button>
             </div>
           </div>
 
-          <div className="p-4 rounded-2xl bg-neutral-50 border border-neutral-200 space-y-2">
+          <div className="p-3.5 sm:p-4 rounded-2xl bg-neutral-50 border border-neutral-200 space-y-2">
             <label className="block text-xs font-bold text-neutral-800">
               Observaciones generales del pedido
             </label>
@@ -813,8 +732,8 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
         </div>
 
         {/* 4. SEÑA Y PAGOS */}
-        <div className="p-4 rounded-2xl bg-neutral-50 border border-neutral-200 space-y-3">
-          <div className="flex items-center justify-between">
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-neutral-50 border border-neutral-200 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
@@ -825,14 +744,14 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
                     setMontoSenia(Math.round(totalCalculado / 2));
                   }
                 }}
-                className="w-4 h-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900"
+                className="w-4 h-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900 shrink-0"
               />
               <span className="text-xs font-bold text-neutral-800">
                 Registrar pago o seña al recibir
               </span>
             </label>
 
-            <div className="text-right">
+            <div className="sm:text-right">
               <span className="text-xs text-neutral-500 mr-2">Saldo pendiente:</span>
               <span
                 className={`text-sm font-mono font-extrabold ${
@@ -848,15 +767,12 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-neutral-200">
               <div>
                 <label className="block text-[11px] font-bold text-neutral-700 mb-1">Monto de la seña ($)</label>
-                <input
-                  type="number"
-                  min="0"
+                <NumericInput
+                  min={0}
                   max={totalCalculado}
-                  value={montoSeniaInput}
-                  onChange={(e) => setMontoSeniaInput(e.target.value)}
-                  onFocus={(e) => e.currentTarget.select()}
-                  placeholder="Ej: 5000"
-                  inputMode="decimal"
+                  value={montoSenia}
+                  onChange={(val) => setMontoSenia(val)}
+                  aria-label="Monto de la seña"
                   className="w-full bg-white border border-neutral-300 rounded-xl px-3 py-2 text-xs text-neutral-900 font-mono font-bold outline-none shadow-2xs"
                 />
               </div>
@@ -881,26 +797,26 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({
         </div>
 
         {/* BOTÓN CREAR PEDIDO */}
-        <div className="flex items-center justify-between pt-3 border-t border-neutral-200">
-          <div className="text-xs">
-            <span className="text-neutral-500">Total a facturar: </span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-neutral-200">
+          <div className="text-xs sm:text-sm">
+            <span className="text-neutral-600">Total a facturar: </span>
             <strong className="text-base font-mono text-neutral-900 font-extrabold ml-1">
               {formatMoneda(totalCalculado)}
             </strong>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center gap-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-semibold text-neutral-600 hover:text-neutral-900 cursor-pointer"
+              className="w-full sm:w-auto px-4 py-2.5 text-xs sm:text-sm font-semibold text-neutral-700 hover:text-neutral-900 bg-neutral-100 hover:bg-neutral-200 rounded-xl cursor-pointer"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={prendas.length === 0}
-              className="px-5 py-2.5 bg-neutral-900 text-white font-bold text-xs rounded-xl hover:bg-neutral-800 transition-all shadow-xs disabled:opacity-50 cursor-pointer active:scale-98"
+              className="w-full sm:w-auto px-5 py-2.5 bg-neutral-900 text-white font-bold text-xs sm:text-sm rounded-xl hover:bg-neutral-800 transition-colors shadow-xs disabled:opacity-50 cursor-pointer"
             >
               Crear Pedido ({prendas.length} prendas)
             </button>

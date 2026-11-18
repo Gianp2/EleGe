@@ -25,7 +25,14 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 import { db, auth } from '../config';
-import { FIRESTORE_COLLECTIONS, RegistroAuditoria, PagoFirestore, FaseAuditoria } from '../collections';
+import {
+  FIRESTORE_COLLECTIONS,
+  RegistroAuditoria,
+  PagoFirestore,
+  MovimientoCajaFirestore,
+  SesionCajaFirestore,
+  FaseAuditoria,
+} from '../collections';
 import { handleFirestoreError, OperationType } from '../errorHandler';
 import {
   generateClienteId,
@@ -34,12 +41,16 @@ import {
   generatePrendaId,
   generatePagoId,
   generateAuditoriaId,
+  generateMovimientoCajaId,
+  generateSesionCajaId,
 } from '../utils/idGenerator';
 import {
   Cliente,
   Pedido,
   Prenda,
   Pago,
+  MovimientoCaja,
+  SesionCaja,
   RegistroAvisoWhatsApp,
   ConfiguracionSistema,
   EstadoPrenda,
@@ -977,6 +988,147 @@ export class FirestoreService {
       })) as RegistroAuditoria[];
     } catch (err) {
       handleFirestoreError(err, OperationType.LIST, FIRESTORE_COLLECTIONS.AUDITORIA);
+    }
+  }
+
+  // =========================================================================
+  // 9. MOVIMIENTOS Y SESIONES DE CAJA (Preparado para persistencia en la nube)
+  // =========================================================================
+
+  static async getMovimientosCaja(): Promise<MovimientoCaja[]> {
+    try {
+      const q = query(
+        collection(db, FIRESTORE_COLLECTIONS.MOVIMIENTOS_CAJA),
+        orderBy('fecha', 'desc')
+      );
+      const snap = await getDocs(q);
+      return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as MovimientoCaja);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.LIST, FIRESTORE_COLLECTIONS.MOVIMIENTOS_CAJA);
+    }
+  }
+
+  static async registrarMovimientoCaja(mov: Omit<MovimientoCaja, 'id' | 'creadoEn'> & { id?: string }): Promise<MovimientoCaja> {
+    if (typeof mov.monto !== 'number' || mov.monto <= 0) {
+      throw new Error('El importe del movimiento de caja debe ser mayor a cero.');
+    }
+    if (!mov.concepto || mov.concepto.trim().length < 2) {
+      throw new Error('El concepto del movimiento de caja es obligatorio.');
+    }
+
+    const admin = this.getAdminInfo();
+    const ahoraIso = new Date().toISOString();
+    const nuevo: MovimientoCajaFirestore = {
+      ...mov,
+      id: mov.id || generateMovimientoCajaId(),
+      concepto: mov.concepto.trim(),
+      anulado: false,
+      creadoEn: ahoraIso,
+      createdAt: serverTimestamp(),
+      createdBy: admin.uid,
+    };
+
+    try {
+      const docRef = doc(db, FIRESTORE_COLLECTIONS.MOVIMIENTOS_CAJA, nuevo.id);
+      const batch = writeBatch(db);
+      batch.set(docRef, nuevo);
+
+      const auditId = generateAuditoriaId();
+      const auditRef = doc(db, FIRESTORE_COLLECTIONS.AUDITORIA, auditId);
+      batch.set(auditRef, {
+        id: auditId,
+        accion: 'CASH_MOVEMENT',
+        fase: 'CONFIRMADA',
+        entidad: 'movimiento_caja',
+        entidadId: nuevo.id,
+        detalles: `${nuevo.tipo === 'ingreso' ? 'Ingreso' : 'Egreso'} de caja ($${nuevo.monto}): ${nuevo.concepto}`,
+        usuarioUid: admin.uid,
+        usuarioEmail: admin.email,
+        timestamp: serverTimestamp(),
+      });
+
+      await batch.commit();
+      return nuevo as MovimientoCaja;
+    } catch (err) {
+      handleFirestoreError(
+        err,
+        OperationType.WRITE,
+        `${FIRESTORE_COLLECTIONS.MOVIMIENTOS_CAJA}/${nuevo.id}`
+      );
+    }
+  }
+
+  static async getSesionesCaja(): Promise<SesionCaja[]> {
+    try {
+      const q = query(
+        collection(db, FIRESTORE_COLLECTIONS.SESIONES_CAJA),
+        orderBy('horaApertura', 'desc')
+      );
+      const snap = await getDocs(q);
+      return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as SesionCaja);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.LIST, FIRESTORE_COLLECTIONS.SESIONES_CAJA);
+    }
+  }
+
+  static async saveSesionCaja(sesion: Partial<SesionCaja>): Promise<SesionCaja> {
+    const admin = this.getAdminInfo();
+    const id = sesion.id || generateSesionCajaId();
+    const completa: SesionCajaFirestore = {
+      id,
+      fecha: sesion.fecha || new Date().toISOString().slice(0, 10),
+      horaApertura: sesion.horaApertura || new Date().toISOString(),
+      saldoInicialEfectivo: typeof sesion.saldoInicialEfectivo === 'number' ? sesion.saldoInicialEfectivo : 0,
+      saldoInicialDigital: sesion.saldoInicialDigital ?? 0,
+      notasApertura: sesion.notasApertura,
+      cerrada: Boolean(sesion.cerrada),
+      horaCierre: sesion.horaCierre,
+      arqueoRealEfectivo: sesion.arqueoRealEfectivo,
+      diferenciaArqueo: sesion.diferenciaArqueo,
+      observacionesCierre: sesion.observacionesCierre,
+      resumenCierre: sesion.resumenCierre,
+      historialAjustes: sesion.historialAjustes,
+      updatedAt: serverTimestamp(),
+      updatedBy: admin.uid,
+    };
+
+    try {
+      const docRef = doc(db, FIRESTORE_COLLECTIONS.SESIONES_CAJA, id);
+      const prevSnap = await getDoc(docRef);
+      const batch = writeBatch(db);
+      batch.set(
+        docRef,
+        {
+          ...completa,
+          ...(!prevSnap.exists() ? { createdAt: serverTimestamp(), createdBy: admin.uid } : {}),
+        },
+        { merge: true }
+      );
+
+      const auditId = generateAuditoriaId();
+      const auditRef = doc(db, FIRESTORE_COLLECTIONS.AUDITORIA, auditId);
+      batch.set(auditRef, {
+        id: auditId,
+        accion: completa.cerrada ? 'CASH_CLOSE' : 'CASH_OPEN',
+        fase: 'CONFIRMADA',
+        entidad: 'sesion_caja',
+        entidadId: id,
+        detalles: completa.cerrada
+          ? `Cierre de caja ${completa.fecha} con arqueo $${completa.arqueoRealEfectivo ?? 0}`
+          : `Apertura de caja ${completa.fecha} con saldo inicial $${completa.saldoInicialEfectivo}`,
+        usuarioUid: admin.uid,
+        usuarioEmail: admin.email,
+        timestamp: serverTimestamp(),
+      });
+
+      await batch.commit();
+      return completa as SesionCaja;
+    } catch (err) {
+      handleFirestoreError(
+        err,
+        OperationType.WRITE,
+        `${FIRESTORE_COLLECTIONS.SESIONES_CAJA}/${id}`
+      );
     }
   }
 }

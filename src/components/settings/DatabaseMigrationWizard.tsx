@@ -217,26 +217,26 @@ export const DatabaseMigrationWizard: React.FC = () => {
       {/* ============================================================== */}
       {/* 1. ENCABEZADO Y ESTADO DE CONEXIÓN FIREBASE                    */}
       {/* ============================================================== */}
-      <div className="bg-white p-5 rounded-2xl border border-neutral-200 shadow-2xs space-y-4">
+      <div className="bg-white p-4 sm:p-5 rounded-2xl border border-neutral-200 shadow-2xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-neutral-100 pb-3">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2.5 bg-neutral-900 text-white rounded-xl">
+          <div className="flex items-start sm:items-center gap-2.5 min-w-0">
+            <div className="p-2.5 bg-neutral-900 text-white rounded-xl shrink-0">
               <Cloud className="w-5 h-5 text-sky-400" />
             </div>
-            <div>
-              <h3 className="text-sm font-bold text-neutral-900 flex items-center gap-2">
+            <div className="min-w-0">
+              <h3 className="text-sm font-bold text-neutral-900 flex flex-wrap items-center gap-2">
                 <span>Asistente de Migración a Cloud Firestore</span>
-                <span className="px-2 py-0.5 text-[10px] font-mono font-bold bg-neutral-100 text-neutral-700 rounded-md border border-neutral-200">
+                <span className="px-2 py-0.5 text-[10px] font-mono font-bold bg-neutral-100 text-neutral-700 rounded-md border border-neutral-200 shrink-0">
                   ETAPA 4
                 </span>
               </h3>
-              <p className="text-xs text-neutral-500">
+              <p className="text-xs text-neutral-500 mt-0.5">
                 Traslado seguro e idempotente de datos locales a la base de datos remota sin alterar la operativa diaria
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
               onClick={() => {
@@ -244,7 +244,7 @@ export const DatabaseMigrationWizard: React.FC = () => {
                 handleRefreshRemoteCounts();
               }}
               disabled={checkingConnection || loadingRemoteCounts}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-xs font-bold rounded-xl transition-all cursor-pointer disabled:opacity-50"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-xs font-bold rounded-xl transition-colors cursor-pointer disabled:opacity-50"
             >
               <RotateCw className={`w-3.5 h-3.5 ${checkingConnection ? 'animate-spin' : ''}`} />
               <span>Verificar Conexión</span>
@@ -350,19 +350,19 @@ export const DatabaseMigrationWizard: React.FC = () => {
       {/* ============================================================== */}
       {/* 2. COMPARATIVA: REGISTROS LOCALES VS REMOTOS EN FIRESTORE      */}
       {/* ============================================================== */}
-      <div className="bg-white p-5 rounded-2xl border border-neutral-200 shadow-2xs space-y-4">
-        <div className="flex items-center justify-between border-b border-neutral-100 pb-3">
-          <div>
+      <div className="bg-white p-4 sm:p-5 rounded-2xl border border-neutral-200 shadow-2xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-neutral-100 pb-3">
+          <div className="min-w-0">
             <h3 className="text-sm font-bold text-neutral-900 flex items-center gap-2">
-              <Database className="w-4 h-4 text-neutral-800" />
+              <Database className="w-4 h-4 text-neutral-800 shrink-0" />
               <span>Comparación de Registros: Origen vs Destino</span>
             </h3>
-            <p className="text-xs text-neutral-500">
+            <p className="text-xs text-neutral-500 mt-0.5">
               Contabilización de registros locales a migrar vs registros ya existentes en Firestore
             </p>
           </div>
 
-          <span className="text-[11px] text-neutral-500 bg-neutral-100 px-2.5 py-1 rounded-full font-mono">
+          <span className="text-xs text-neutral-600 bg-neutral-100 px-2.5 py-1 rounded-full font-mono self-start sm:self-auto shrink-0">
             {remoteCounts?.pedidos === 0
               ? 'Firestore Listo (0 pedidos)'
               : `Firestore con ${remoteCounts?.pedidos || 0} pedidos`}
@@ -487,7 +487,7 @@ export const DatabaseMigrationWizard: React.FC = () => {
             <button
               type="button"
               onClick={handleDescargarRespaldo}
-              className={`inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer shrink-0 shadow-2xs ${
+              className={`w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-bold rounded-xl transition-colors cursor-pointer shrink-0 shadow-2xs ${
                 backupDescargado
                   ? 'bg-emerald-50 text-emerald-800 border border-emerald-300'
                   : 'bg-neutral-900 text-white hover:bg-neutral-800'
@@ -529,7 +529,7 @@ export const DatabaseMigrationWizard: React.FC = () => {
               type="button"
               onClick={handleEjecutarSimulacion}
               disabled={simulating}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-neutral-100 hover:bg-neutral-200 text-neutral-900 text-xs font-bold rounded-xl transition-all cursor-pointer shrink-0 disabled:opacity-50"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-900 text-xs font-bold rounded-xl transition-colors cursor-pointer shrink-0 disabled:opacity-50"
             >
               <Play className={`w-3.5 h-3.5 ${simulating ? 'animate-spin' : ''}`} />
               <span>{simulating ? 'Simulando...' : 'Ejecutar Simulación'}</span>
@@ -539,41 +539,41 @@ export const DatabaseMigrationWizard: React.FC = () => {
           {/* Resultado de la simulación */}
           {simulationResult && (
             <div className="mt-3 p-3.5 rounded-xl border bg-neutral-50/80 border-neutral-200 text-xs space-y-3">
-              <div className="flex items-center justify-between border-b border-neutral-200/80 pb-2">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-neutral-200/80 pb-2">
                 <span className="font-bold text-neutral-900 flex items-center gap-1.5">
                   {simulationResult.esValidoParaMigrar ? (
                     <>
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                       <span className="text-emerald-950 font-bold">Datos Válidos para Migración</span>
                     </>
                   ) : (
                     <>
-                      <AlertTriangle className="w-4 h-4 text-rose-600" />
+                      <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
                       <span className="text-rose-950 font-bold">Requiere Correcciones Previas</span>
                     </>
                   )}
                 </span>
-                <span className="text-[10px] text-neutral-500 font-mono">
+                <span className="text-[11px] text-neutral-500 font-mono">
                   Procesado en {simulationResult.tiempoSimulacionMs} ms
                 </span>
               </div>
 
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="p-2 bg-white rounded-lg border border-neutral-200">
-                  <span className="text-[10px] text-neutral-400 block uppercase">Nuevos a Crear</span>
-                  <span className="text-sm font-bold text-emerald-700">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-center">
+                <div className="p-2.5 bg-white rounded-lg border border-neutral-200 flex sm:block items-center justify-between">
+                  <span className="text-[11px] text-neutral-500 block uppercase font-semibold">Nuevos a Crear</span>
+                  <span className="text-sm font-bold text-emerald-700 font-mono">
                     +{simulationResult.plan.aCrear}
                   </span>
                 </div>
-                <div className="p-2 bg-white rounded-lg border border-neutral-200">
-                  <span className="text-[10px] text-neutral-400 block uppercase">Omitir (Ya Existen)</span>
-                  <span className="text-sm font-bold text-neutral-600">
+                <div className="p-2.5 bg-white rounded-lg border border-neutral-200 flex sm:block items-center justify-between">
+                  <span className="text-[11px] text-neutral-500 block uppercase font-semibold">Ya Existen</span>
+                  <span className="text-sm font-bold text-neutral-700 font-mono">
                     {simulationResult.plan.aOmitirPorExistente}
                   </span>
                 </div>
-                <div className="p-2 bg-white rounded-lg border border-neutral-200">
-                  <span className="text-[10px] text-neutral-400 block uppercase">Conflictos</span>
-                  <span className="text-sm font-bold text-rose-600">
+                <div className="p-2.5 bg-white rounded-lg border border-neutral-200 flex sm:block items-center justify-between">
+                  <span className="text-[11px] text-neutral-500 block uppercase font-semibold">Conflictos</span>
+                  <span className="text-sm font-bold text-rose-600 font-mono">
                     {simulationResult.plan.conflictos}
                   </span>
                 </div>
@@ -612,10 +612,10 @@ export const DatabaseMigrationWizard: React.FC = () => {
             <span className="w-6 h-6 rounded-full bg-neutral-900 text-white text-xs font-bold flex items-center justify-center shrink-0">
               3
             </span>
-            <div className="space-y-1 flex-1">
-              <h4 className="text-xs font-bold text-neutral-900 flex items-center gap-2">
+            <div className="space-y-1 flex-1 min-w-0">
+              <h4 className="text-xs font-bold text-neutral-900 flex flex-wrap items-center gap-2">
                 <span>Confirmación Explícita y Ejecución de Importación</span>
-                <span className="text-[10px] text-emerald-800 bg-emerald-100/70 px-2 py-0.5 rounded-full border border-emerald-200 font-bold">
+                <span className="text-[11px] text-emerald-800 bg-emerald-100/70 px-2 py-0.5 rounded-full border border-emerald-200 font-bold">
                   Pruebas de Seguridad: 38/38 Aprobadas ✓
                 </span>
               </h4>
@@ -633,7 +633,7 @@ export const DatabaseMigrationWizard: React.FC = () => {
               checked={desbloqueoManualConfirmado}
               onChange={(e) => setDesbloqueoManualConfirmado(e.target.checked)}
               disabled={!backupDescargado || !simulationResult?.esValidoParaMigrar}
-              className="mt-0.5 h-4 w-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900 cursor-pointer disabled:opacity-40"
+              className="mt-0.5 h-4 w-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900 cursor-pointer disabled:opacity-40 shrink-0"
             />
             <label
               htmlFor="desbloqueo-migracion"
@@ -652,7 +652,7 @@ export const DatabaseMigrationWizard: React.FC = () => {
               type="button"
               disabled={!puedeMigrar}
               onClick={() => setConfirmModalOpen(true)}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-neutral-900 text-white font-bold text-xs rounded-xl hover:bg-neutral-800 transition-all shadow-xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-neutral-900 text-white font-bold text-xs rounded-xl hover:bg-neutral-800 transition-colors shadow-xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {desbloqueoManualConfirmado ? (
                 <Unlock className="w-4 h-4 text-emerald-400" />
@@ -731,14 +731,14 @@ export const DatabaseMigrationWizard: React.FC = () => {
       {/* ============================================================== */}
       {/* 4. REPORTE DE CONCILIACIÓN Y VERIFICACIÓN POSTERIOR            */}
       {/* ============================================================== */}
-      <div className="bg-white p-5 rounded-2xl border border-neutral-200 shadow-2xs space-y-4">
+      <div className="bg-white p-4 sm:p-5 rounded-2xl border border-neutral-200 shadow-2xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-neutral-100 pb-3">
           <div>
             <h3 className="text-sm font-bold text-neutral-900 flex items-center gap-2">
-              <FileCheck className="w-4 h-4 text-neutral-800" />
+              <FileCheck className="w-4 h-4 text-neutral-800 shrink-0" />
               <span>Verificación y Conciliación Posterior</span>
             </h3>
-            <p className="text-xs text-neutral-500">
+            <p className="text-xs text-neutral-500 mt-0.5">
               Auditoría comparativa cruzada entre localStorage y Cloud Firestore para validar 100% de consistencia
             </p>
           </div>
@@ -747,7 +747,7 @@ export const DatabaseMigrationWizard: React.FC = () => {
             type="button"
             onClick={handleEjecutarConciliacion}
             disabled={verifyingReconciliation}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-900 text-xs font-bold rounded-xl transition-all cursor-pointer disabled:opacity-50 self-start sm:self-auto"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-neutral-100 hover:bg-neutral-200 text-neutral-900 text-xs font-bold rounded-xl transition-colors cursor-pointer disabled:opacity-50 shrink-0"
           >
             <RotateCw className={`w-3.5 h-3.5 ${verifyingReconciliation ? 'animate-spin' : ''}`} />
             <span>Verificar Conciliación</span>
@@ -756,7 +756,60 @@ export const DatabaseMigrationWizard: React.FC = () => {
 
         {reconciliationReport ? (
           <div className="space-y-3">
-            <div className="overflow-x-auto">
+            {/* Móvil Cards */}
+            <div className="md:hidden space-y-2">
+              {[
+                {
+                  label: 'Clientes Registrados',
+                  local: reconciliationReport.origenLocal.clientes,
+                  remote: reconciliationReport.destinoFirestore.clientes,
+                  ok: reconciliationReport.coincidencias.clientesCoinciden,
+                },
+                {
+                  label: 'Pedidos Totales',
+                  local: reconciliationReport.origenLocal.pedidos,
+                  remote: reconciliationReport.destinoFirestore.pedidos,
+                  ok: reconciliationReport.coincidencias.pedidosCoinciden,
+                },
+                {
+                  label: 'Prendas Individuales',
+                  local: reconciliationReport.origenLocal.prendas,
+                  remote: reconciliationReport.destinoFirestore.prendas,
+                  ok: reconciliationReport.coincidencias.prendasCoinciden,
+                },
+                {
+                  label: 'Cobros Realizados',
+                  local: formatMoneda(reconciliationReport.origenLocal.totalCobrado),
+                  remote: formatMoneda(reconciliationReport.destinoFirestore.totalCobrado),
+                  ok: reconciliationReport.coincidencias.totalCobradoCoincide,
+                },
+                {
+                  label: 'Saldos Pendientes',
+                  local: formatMoneda(reconciliationReport.origenLocal.saldoPendiente),
+                  remote: formatMoneda(reconciliationReport.destinoFirestore.saldoPendiente),
+                  ok: reconciliationReport.coincidencias.saldoPendienteCoincide,
+                },
+              ].map((row) => (
+                <div key={row.label} className="p-3 rounded-xl border border-neutral-200 bg-neutral-50 space-y-1.5 text-xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-bold text-neutral-900">{row.label}</span>
+                    {row.ok ? (
+                      <span className="text-emerald-700 font-bold flex items-center gap-1 shrink-0">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Coincide
+                      </span>
+                    ) : (
+                      <span className="text-rose-700 font-bold shrink-0">Diferencia</span>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between text-neutral-600 font-mono">
+                    <span>Local: <strong className="text-neutral-900">{row.local}</strong></span>
+                    <span>Firestore: <strong className="text-neutral-900">{row.remote}</strong></span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left text-xs border border-neutral-200 rounded-xl overflow-hidden">
                 <thead className="bg-neutral-100/70 text-neutral-600 font-bold border-b border-neutral-200">
                   <tr>

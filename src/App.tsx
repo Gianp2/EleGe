@@ -1,3 +1,8 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import React, { useState, useEffect, useRef } from 'react';
 import { NavTab, Sidebar } from './components/common/Sidebar';
 import { Header } from './components/common/Header';
@@ -22,7 +27,6 @@ import { useAuth } from './context/AuthContext';
 import { QrCode } from 'lucide-react';
 import { LoginView } from './components/auth/LoginView';
 import { AuthLoadingScreen } from './components/auth/AuthLoadingScreen';
-import { AssistantPanel } from './components/assistant/AssistantPanel';
 
 export default function App() {
   const { currentUser, isAuthorized, loading, logout } = useAuth();
@@ -37,8 +41,6 @@ export default function App() {
 
   const [isNewOrderOpen, setIsNewOrderOpen] = useState(false);
   const [clientePreseleccionado, setClientePreseleccionado] = useState<Cliente | null>(null);
-  const [pedidoDictadoInicial, setPedidoDictadoInicial] = useState('');
-  const [clienteDictadoInicial, setClienteDictadoInicial] = useState('');
 
   const [selectedOrder, setSelectedOrder] = useState<Pedido | null>(null);
 
@@ -58,8 +60,6 @@ export default function App() {
     cliente: Cliente | null;
     errorBloqueo?: string;
   }>({ isOpen: false, cliente: null });
-
-  const [confirmResetOpen, setConfirmResetOpen] = useState(false);
 
   // Filtros
   const [pedidoFiltroEstado, setPedidoFiltroEstado] = useState<EstadoPedido | 'todos'>('todos');
@@ -95,7 +95,7 @@ export default function App() {
       if (isInput) return;
 
       // Si hay modales de edición o creación abiertos, no secuestrar la vista
-      if (isNewOrderOpen || isClientModalOpen || confirmDeleteClient.isOpen || confirmResetOpen) {
+      if (isNewOrderOpen || isClientModalOpen || confirmDeleteClient.isOpen) {
         return;
       }
 
@@ -124,7 +124,7 @@ export default function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isNewOrderOpen, isClientModalOpen, confirmDeleteClient.isOpen, confirmResetOpen]);
+  }, [isNewOrderOpen, isClientModalOpen, confirmDeleteClient.isOpen]);
 
   const handleScanSuccess = (decoded: QRPayloadDecoded, rawCode: string) => {
     if (decoded.type === 'GARMENT') {
@@ -226,7 +226,7 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-dvh w-full max-w-full overflow-hidden bg-neutral-50 text-neutral-900 font-sans">
+    <div className="flex h-[100dvh] w-full bg-neutral-50 text-neutral-900 font-sans">
       {/* Sidebar de escritorio en fondo blanco */}
       <Sidebar
         activeTab={activeTab}
@@ -240,16 +240,16 @@ export default function App() {
           setIsNewOrderOpen(true);
         }}
         kpis={kpis}
-        onResetData={() => setConfirmResetOpen(true)}
         onLogout={logout}
         userEmail={currentUser.email}
       />
 
       {/* Área Principal de Contenido */}
-      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-neutral-50">
+      <div className="flex-1 flex flex-col min-w-0 h-full bg-neutral-50">
         {/* Header Superior Blanco */}
         <Header
           activeTab={activeTab}
+          onOpenScanner={() => setIsScannerOpen(true)}
           onNewOrder={() => {
             setClientePreseleccionado(null);
             setIsNewOrderOpen(true);
@@ -259,16 +259,12 @@ export default function App() {
         />
 
         {/* Viewport Scrolleable */}
-        <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 pb-[calc(108px+env(safe-area-inset-bottom,0px))] lg:pb-8">
-          <div className="max-w-6xl min-w-0 w-full mx-auto">
+        <main className="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-8 pb-[calc(6.75rem+env(safe-area-inset-bottom,0px))] lg:pb-8">
+          <div className="max-w-6xl mx-auto">
             {activeTab === 'dashboard' && (
               <DashboardView
                 kpis={kpis}
                 pedidos={pedidos}
-                onNewOrder={() => {
-                  setClientePreseleccionado(null);
-                  setIsNewOrderOpen(true);
-                }}
                 onSelectOrder={(ped) => setSelectedOrder(ped)}
                 onGoToPedidos={(filtro) => {
                   if (filtro) setPedidoFiltroEstado(filtro);
@@ -281,10 +277,6 @@ export default function App() {
             {activeTab === 'pedidos' && (
               <OrderListView
                 pedidos={pedidos}
-                onOpenNewOrder={() => {
-                  setClientePreseleccionado(null);
-                  setIsNewOrderOpen(true);
-                }}
                 onSelectOrder={(ped) => setSelectedOrder(ped)}
                 onOpenTicket={(ped) => setTicketModal({ isOpen: true, pedido: ped })}
                 initialEstadoFilter={pedidoFiltroEstado}
@@ -314,15 +306,15 @@ export default function App() {
           </div>
         </main>
 
-        {/* Acceso QR móvil: usa el escáner existente, sin duplicar la lógica. */}
+        {/* Botón Flotante QR (fijo a la derecha, encima de la barra inferior, sin animaciones) */}
         <button
           type="button"
+          onClick={() => setIsScannerOpen(true)}
           aria-label="Escanear código QR"
           title="Escanear código QR"
-          onClick={() => setIsScannerOpen(true)}
-          className="lg:hidden fixed right-4 bottom-[calc(92px+env(safe-area-inset-bottom,0px))] z-50 flex h-14 w-14 items-center justify-center rounded-full bg-neutral-950 text-emerald-400 shadow-lg ring-1 ring-white/20 transition-colors hover:bg-neutral-800 active:bg-neutral-700 no-print"
+          className="lg:hidden fixed right-3.5 bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] z-40 w-14 h-14 rounded-full bg-neutral-900 hover:bg-neutral-800 text-emerald-400 border border-neutral-800 shadow-lg flex items-center justify-center cursor-pointer no-print"
         >
-          <QrCode className="h-7 w-7" aria-hidden="true" />
+          <QrCode className="w-6 h-6" />
         </button>
 
         {/* Barra de Navegación Móvil */}
@@ -334,27 +326,6 @@ export default function App() {
           }}
         />
       </div>
-
-      {/* Asistente de consultas, solo lectura. Ocultar mientras existan modales. */}
-      {!isNewOrderOpen && !isScannerOpen && !isClientModalOpen &&
-        !selectedOrder && !selectedClient && !scannedPrendaId &&
-        !ticketModal.isOpen && !confirmDeleteClient.isOpen && !confirmResetOpen && (
-          <AssistantPanel
-            pedidos={pedidos}
-            clientes={clientes}
-            onSelectOrder={(pedido) => setSelectedOrder(pedido)}
-            onNewOrder={(text) => {
-              setClientePreseleccionado(null);
-              setPedidoDictadoInicial(text);
-              setIsNewOrderOpen(true);
-            }}
-            onNewClient={(text) => {
-              setClienteEditar(null);
-              setClienteDictadoInicial(text);
-              setIsClientModalOpen(true);
-            }}
-          />
-        )}
 
       {/* --- MODALES DEL SISTEMA --- */}
 
@@ -387,9 +358,7 @@ export default function App() {
         onClose={() => {
           setIsNewOrderOpen(false);
           setClientePreseleccionado(null);
-          setPedidoDictadoInicial('');
         }}
-        initialDictation={pedidoDictadoInicial}
         clientePreseleccionado={clientePreseleccionado}
         onOrderCreated={handleOrderCreated}
         onOpenCreateClientModal={() => setIsClientModalOpen(true)}
@@ -418,9 +387,7 @@ export default function App() {
         onClose={() => {
           setIsClientModalOpen(false);
           setClienteEditar(null);
-          setClienteDictadoInicial('');
         }}
-        initialDictation={clienteDictadoInicial}
         clienteEditar={clienteEditar}
         onClientSaved={(cli) => {
           setClientePreseleccionado(cli);
@@ -469,21 +436,6 @@ export default function App() {
           variant="danger"
         />
       )}
-
-      {/* 9. Diálogo de Restauración de Datos Demo */}
-      <ConfirmDialog
-        isOpen={confirmResetOpen}
-        onClose={() => setConfirmResetOpen(false)}
-        onConfirm={() => {
-          storage.resetearDatos();
-          syncData();
-        }}
-        title="Restaurar datos de demostración"
-        message="¿Estás seguro de que deseas restablecer los pedidos, clientes y pagos a los datos de demostración iniciales?"
-        confirmText="Restablecer"
-        cancelText="Cancelar"
-        variant="danger"
-      />
     </div>
   );
 }

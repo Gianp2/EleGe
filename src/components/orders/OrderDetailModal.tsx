@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { Pedido, Prenda, Cliente, EstadoPrenda, MetodoPago, TipoServicio } from '../../types';
 import { Modal } from '../common/Modal';
+import { NumericInput } from '../common/NumericInput';
 import { StatusBadge } from '../common/StatusBadge';
 import {
   formatMoneda,
@@ -296,7 +297,7 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
             <span className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider block">
               Estado del Pedido
             </span>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <StatusBadge tipo="pedido" estado={pedido.estadoGeneral} size="md" />
               <StatusBadge tipo="pago" estado={pedido.estadoPago} size="md" />
             </div>
@@ -371,12 +372,11 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                 <label className="block text-[11px] text-amber-900 font-bold mb-1">
                   Monto a cobrar ahora
                 </label>
-                <input
-                  type="number"
-                  min="0"
+                <NumericInput
+                  min={0}
                   max={pedido.saldoPendiente}
                   value={montoPago}
-                  onChange={(e) => setMontoPago(Number(e.target.value))}
+                  onChange={(val) => setMontoPago(val)}
                   className="w-full bg-white border border-amber-300 rounded-xl px-3 py-1.5 text-xs text-neutral-900 font-mono font-bold"
                 />
               </div>
@@ -396,11 +396,11 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-1">
+            <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-end gap-2 pt-1">
               <button
                 type="button"
                 onClick={() => setAlertaEntregaPendiente({ mostrar: false })}
-                className="px-3 py-1.5 text-xs font-semibold text-neutral-600 hover:text-neutral-900 cursor-pointer"
+                className="w-full sm:w-auto px-3 py-2 text-xs font-semibold text-neutral-600 hover:text-neutral-900 cursor-pointer"
               >
                 Cancelar
               </button>
@@ -415,14 +415,14 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                   setAlertaEntregaPendiente({ mostrar: false });
                   refrescar();
                 }}
-                className="px-3.5 py-1.5 text-xs font-semibold text-amber-900 hover:bg-amber-100 border border-amber-300 rounded-xl cursor-pointer"
+                className="w-full sm:w-auto px-3.5 py-2 text-xs font-semibold text-amber-900 hover:bg-amber-100 border border-amber-300 rounded-xl cursor-pointer"
               >
                 Entregar SIN cobrar
               </button>
               <button
                 type="button"
                 onClick={handleCobrarYEntregar}
-                className="px-4 py-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-xs cursor-pointer active:scale-98"
+                className="w-full sm:w-auto px-4 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-xs cursor-pointer"
               >
                 Cobrar {formatMoneda(montoPago)} y Entregar
               </button>
@@ -432,34 +432,34 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
 
         {/* LISTADO DE PRENDAS CON CONTROL INDIVIDUAL */}
         <div className="space-y-2.5">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-700 flex items-center gap-1.5">
-              <Shirt className="w-4 h-4 text-neutral-600" />
-              Prendas del Pedido ({pedido.prendas.length})
+              <Shirt className="w-4 h-4 text-neutral-600 shrink-0" />
+              <span>Prendas del Pedido ({pedido.prendas.length})</span>
             </h4>
 
             {/* Acciones */}
-            <div className="flex items-center gap-1.5 text-xs">
+            <div className="flex flex-wrap items-center gap-1.5 text-xs">
               <button
                 type="button"
                 onClick={() => setMostrarFormAgregarPrenda(!mostrarFormAgregarPrenda)}
-                className="px-2.5 py-1 rounded-lg bg-neutral-900 text-white hover:bg-neutral-800 font-bold text-[11px] transition-colors cursor-pointer flex items-center gap-1"
+                className="min-h-[38px] px-3 py-1.5 rounded-xl bg-neutral-900 text-white hover:bg-neutral-800 font-bold text-xs transition-colors cursor-pointer flex items-center gap-1"
               >
-                <Plus className="w-3 h-3" />
+                <Plus className="w-3.5 h-3.5" />
                 <span>Agregar prenda</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleCambiarTodoEstado('listo')}
-                className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 font-bold text-[11px] transition-colors cursor-pointer"
+                className="min-h-[38px] px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 font-bold text-xs transition-colors cursor-pointer"
               >
                 Todo Listo
               </button>
               <button
                 type="button"
                 onClick={() => handleCambiarTodoEstado('entregado')}
-                className="px-2.5 py-1 rounded-lg bg-neutral-100 text-neutral-800 border border-neutral-300 hover:bg-neutral-200 font-bold text-[11px] transition-colors cursor-pointer"
+                className="min-h-[38px] px-3 py-1.5 rounded-xl bg-neutral-100 text-neutral-800 border border-neutral-300 hover:bg-neutral-200 font-bold text-xs transition-colors cursor-pointer"
               >
                 Todo Entregado
               </button>
@@ -508,12 +508,10 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                     </option>
                   ))}
                 </select>
-                <input
-                  type="number"
-                  min="0"
-                  step="100"
+                <NumericInput
+                  min={0}
                   value={nuevoPrecioPrenda}
-                  onChange={(e) => setNuevoPrecioPrenda(Number(e.target.value))}
+                  onChange={(val) => setNuevoPrecioPrenda(val)}
                   className="bg-white border border-neutral-300 rounded-lg px-2.5 py-1.5 text-xs text-neutral-900 font-mono font-bold"
                 />
               </div>
@@ -542,42 +540,42 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                 className="p-3.5 rounded-2xl bg-white border border-neutral-200 shadow-2xs space-y-2.5"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-2">
+                  <div className="space-y-0.5 min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                       <button
                         type="button"
                         onClick={() => {
                           onClose();
                           onOpenPrendaDetail(prenda.id);
                         }}
-                        className="text-xs font-mono font-bold text-neutral-800 bg-neutral-100 hover:bg-neutral-200 px-2 py-0.5 rounded-md border border-neutral-200 cursor-pointer"
+                        className="text-xs font-mono font-bold text-neutral-800 bg-neutral-100 hover:bg-neutral-200 px-2 py-0.5 rounded-md border border-neutral-200 cursor-pointer shrink-0"
                         title="Ver ficha individual de esta prenda"
                       >
                         {prenda.id}
                       </button>
-                      <span className="text-xs font-bold text-neutral-900">{prenda.tipo}</span>
-                      <span className="text-[11px] text-neutral-500 font-medium">
+                      <span className="text-xs sm:text-sm font-bold text-neutral-900 break-words">{prenda.tipo}</span>
+                      <span className="text-xs text-neutral-500 font-medium">
                         · {SERVICIOS_INFO[prenda.servicio]?.label}
                       </span>
                     </div>
                     {prenda.descripcion && (
-                      <p className="text-xs text-neutral-600">{prenda.descripcion}</p>
+                      <p className="text-xs text-neutral-600 break-words">{prenda.descripcion}</p>
                     )}
                     {prenda.observaciones && (
-                      <p className="text-xs text-amber-800 font-medium">
+                      <p className="text-xs text-amber-800 font-medium break-words">
                         Obs: {prenda.observaciones}
                       </p>
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono font-extrabold text-neutral-900 mr-2">
+                  <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
+                    <span className="text-xs sm:text-sm font-mono font-extrabold text-neutral-900">
                       {formatMoneda(prenda.precio)}
                     </span>
                     <button
                       type="button"
                       onClick={() => onOpenTicket(pedido, prenda)}
-                      className="p-1.5 text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100 rounded-lg transition-colors cursor-pointer"
+                      className="p-2 text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 rounded-lg transition-colors cursor-pointer"
                       title="Imprimir etiqueta individual de esta prenda"
                     >
                       <Printer className="w-4 h-4" />
@@ -586,31 +584,33 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                 </div>
 
                 {/* Selector de estado individual para esta prenda */}
-                <div className="flex items-center gap-1.5 pt-2 border-t border-neutral-100">
-                  <span className="text-[11px] font-bold text-neutral-500 mr-1">Estado:</span>
-                  {(['recibido', 'en_proceso', 'listo', 'entregado'] as EstadoPrenda[]).map((est) => {
-                    const isSelected = prenda.estado === est;
-                    const labels: Record<EstadoPrenda, string> = {
-                      recibido: 'Recibido',
-                      en_proceso: 'En Proceso',
-                      listo: 'Listo',
-                      entregado: 'Entregado',
-                    };
-                    return (
-                      <button
-                        key={est}
-                        type="button"
-                        onClick={() => handleCambiarEstadoPrenda(prenda, est)}
-                        className={`text-[11px] px-2.5 py-1 rounded-lg transition-all cursor-pointer font-semibold ${
-                          isSelected
-                            ? 'bg-neutral-900 text-white font-bold shadow-xs'
-                            : 'bg-neutral-100 text-neutral-600 hover:text-neutral-900 hover:bg-neutral-200 border border-neutral-200'
-                        }`}
-                      >
-                        {labels[est]}
-                      </button>
-                    );
-                  })}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 pt-2 border-t border-neutral-100">
+                  <span className="text-xs font-bold text-neutral-500 sm:mr-1 shrink-0">Estado:</span>
+                  <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-1.5 w-full sm:w-auto">
+                    {(['recibido', 'en_proceso', 'listo', 'entregado'] as EstadoPrenda[]).map((est) => {
+                      const isSelected = prenda.estado === est;
+                      const labels: Record<EstadoPrenda, string> = {
+                        recibido: 'Recibido',
+                        en_proceso: 'En Proceso',
+                        listo: 'Listo',
+                        entregado: 'Entregado',
+                      };
+                      return (
+                        <button
+                          key={est}
+                          type="button"
+                          onClick={() => handleCambiarEstadoPrenda(prenda, est)}
+                          className={`min-h-[38px] text-xs px-2.5 py-1.5 rounded-xl transition-colors cursor-pointer font-semibold text-center ${
+                            isSelected
+                              ? 'bg-neutral-900 text-white font-bold shadow-xs'
+                              : 'bg-neutral-100 text-neutral-700 hover:text-neutral-900 hover:bg-neutral-200 border border-neutral-200'
+                          }`}
+                        >
+                          {labels[est]}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             ))}
@@ -618,10 +618,10 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
         </div>
 
         {/* SECCIÓN PAGOS Y SEÑAS */}
-        <div className="p-4 rounded-2xl bg-neutral-50 border border-neutral-200 space-y-3">
-          <div className="flex items-center justify-between">
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-neutral-50 border border-neutral-200 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="text-xs font-bold text-neutral-800 flex items-center gap-1.5">
-              <DollarSign className="w-4 h-4 text-emerald-600" />
+              <DollarSign className="w-4 h-4 text-emerald-600 shrink-0" />
               Historial de Pagos y Señas
             </span>
 
@@ -655,13 +655,12 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                 <div>
                   <label className="block text-[11px] font-bold text-neutral-700 mb-1">Monto a abonar ($)</label>
-                  <input
-                    type="number"
-                    min="1"
+                  <NumericInput
+                    min={1}
                     max={pedido.saldoPendiente}
                     required
                     value={montoPago}
-                    onChange={(e) => setMontoPago(Number(e.target.value))}
+                    onChange={(val) => setMontoPago(val)}
                     className="w-full bg-neutral-50 border border-neutral-300 rounded-xl px-3 py-1.5 text-xs text-neutral-900 font-mono font-bold outline-none"
                   />
                 </div>
@@ -693,18 +692,18 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-1">
+              <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-end gap-2 pt-1">
                 <button
                   type="button"
                   onClick={() => setMostrarFormPago(false)}
-                  className="px-3 py-1.5 text-xs font-semibold text-neutral-600 hover:text-neutral-900 cursor-pointer"
+                  className="w-full sm:w-auto px-3 py-2 text-xs font-semibold text-neutral-600 hover:text-neutral-900 cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={procesandoPago}
-                  className="px-4 py-1.5 bg-neutral-900 text-white font-bold text-xs rounded-xl hover:bg-neutral-800 transition-all shadow-xs cursor-pointer active:scale-98 disabled:opacity-50"
+                  className="w-full sm:w-auto px-4 py-2 bg-neutral-900 text-white font-bold text-xs rounded-xl hover:bg-neutral-800 transition-colors shadow-xs cursor-pointer disabled:opacity-50"
                 >
                   Confirmar Cobro de {formatMoneda(montoPago)}
                 </button>
@@ -720,9 +719,9 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
               {pedido.pagos.map((pago) => (
                 <div
                   key={pago.id}
-                  className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-neutral-200 text-xs shadow-2xs"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 p-2.5 rounded-xl bg-white border border-neutral-200 text-xs shadow-2xs"
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-1.5 min-w-0">
                     <span className="font-extrabold text-emerald-700 font-mono">
                       {formatMoneda(pago.monto)}
                     </span>
@@ -730,17 +729,17 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                       via {METODO_PAGO_LABELS[pago.metodo]}
                     </span>
                     {pago.esSenia && (
-                      <span className="text-[10px] text-amber-800 font-bold px-1.5 py-0.2 rounded bg-amber-50 border border-amber-200">
+                      <span className="text-[11px] text-amber-800 font-bold px-1.5 py-0.5 rounded bg-amber-50 border border-amber-200">
                         Seña inicial
                       </span>
                     )}
                     {pago.nota && (
-                      <span className="text-neutral-500 truncate max-w-xs">
+                      <span className="text-neutral-500 break-words">
                         · {pago.nota}
                       </span>
                     )}
                   </div>
-                  <span className="font-mono text-neutral-500 text-[11px]">
+                  <span className="font-mono text-neutral-500 text-[11px] shrink-0">
                     {formatFechaHora(pago.fecha)}
                   </span>
                 </div>
@@ -807,31 +806,31 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
         )}
 
         {/* PIE DE MODAL: IMPRESIÓN Y CIERRE */}
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-neutral-200">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-3 border-t border-neutral-200">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={() => onOpenTicket(pedido)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-neutral-900 bg-neutral-100 hover:bg-neutral-200 border border-neutral-300 rounded-xl transition-colors cursor-pointer"
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 text-xs font-bold text-neutral-900 bg-neutral-100 hover:bg-neutral-200 border border-neutral-300 rounded-xl transition-colors cursor-pointer whitespace-nowrap"
             >
-              <Printer className="w-4 h-4" />
-              <span>Imprimir Ticket Térmico</span>
+              <Printer className="w-4 h-4 shrink-0" />
+              <span>Imprimir Ticket</span>
             </button>
             <button
               type="button"
               onClick={() => onOpenTicket(pedido, pedido.prendas[0])}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-neutral-700 hover:text-neutral-900 bg-white hover:bg-neutral-100 border border-neutral-300 rounded-xl transition-colors cursor-pointer"
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 text-xs font-semibold text-neutral-700 hover:text-neutral-900 bg-white hover:bg-neutral-100 border border-neutral-300 rounded-xl transition-colors cursor-pointer whitespace-nowrap"
             >
-              <Printer className="w-4 h-4" />
-              <span>Etiquetas de Prendas</span>
+              <Printer className="w-4 h-4 shrink-0" />
+              <span>Etiquetas</span>
             </button>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between sm:justify-end gap-2">
             <button
               type="button"
               onClick={() => setMostrarConfirmarEliminar(true)}
-              className="p-2 text-neutral-400 hover:text-rose-600 hover:bg-neutral-100 rounded-xl transition-colors"
+              className="p-2 text-neutral-500 hover:text-rose-600 hover:bg-neutral-100 rounded-xl transition-colors cursor-pointer"
               title="Anular pedido"
             >
               <Trash2 className="w-4 h-4" />
@@ -839,7 +838,7 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-bold text-neutral-600 hover:text-neutral-900 bg-neutral-100 hover:bg-neutral-200 rounded-xl transition-colors cursor-pointer"
+              className="flex-1 sm:flex-initial px-4 py-2.5 text-xs font-bold text-neutral-700 hover:text-neutral-900 bg-neutral-100 hover:bg-neutral-200 rounded-xl transition-colors cursor-pointer"
             >
               Cerrar
             </button>

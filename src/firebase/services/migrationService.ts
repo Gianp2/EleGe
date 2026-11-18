@@ -56,6 +56,8 @@ export interface RemoteCounts {
   prendas: number;
   pagos: number;
   avisos: number;
+  movimientosCaja?: number;
+  sesionesCaja?: number;
   configuracionExiste: boolean;
   totalPagadoRemoto: number;
   saldoPendienteRemoto: number;
@@ -126,6 +128,8 @@ export interface MigrationExecutionResult {
     prendas: number;
     pagos: number;
     avisos: number;
+    movimientosCaja?: number;
+    sesionesCaja?: number;
     configuracion: boolean;
   };
   omitidosPorExistentes: {
@@ -134,6 +138,8 @@ export interface MigrationExecutionResult {
     prendas: number;
     pagos: number;
     avisos: number;
+    movimientosCaja?: number;
+    sesionesCaja?: number;
   };
   errores: string[];
   auditoriaId?: string;
@@ -220,13 +226,15 @@ export class MigrationService {
 
   static async getRemoteCounts(): Promise<RemoteCounts> {
     try {
-      const [clientesSnap, pedidosSnap, prendasSnap, pagosSnap, avisosSnap, configSnap] =
+      const [clientesSnap, pedidosSnap, prendasSnap, pagosSnap, avisosSnap, movCajaSnap, sesCajaSnap, configSnap] =
         await Promise.all([
           getDocs(collection(db, FIRESTORE_COLLECTIONS.CLIENTES)),
           getDocs(collection(db, FIRESTORE_COLLECTIONS.PEDIDOS)),
           getDocs(collection(db, FIRESTORE_COLLECTIONS.PRENDAS)),
           getDocs(collection(db, FIRESTORE_COLLECTIONS.PAGOS)),
           getDocs(collection(db, FIRESTORE_COLLECTIONS.AVISOS_WHATSAPP)),
+          getDocs(collection(db, FIRESTORE_COLLECTIONS.MOVIMIENTOS_CAJA)),
+          getDocs(collection(db, FIRESTORE_COLLECTIONS.SESIONES_CAJA)),
           getDoc(doc(db, FIRESTORE_COLLECTIONS.CONFIGURACION, 'general')),
         ]);
 
@@ -252,6 +260,8 @@ export class MigrationService {
         prendas: prendasSnap.size,
         pagos: pagosSnap.size,
         avisos: avisosSnap.size,
+        movimientosCaja: movCajaSnap.size,
+        sesionesCaja: sesCajaSnap.size,
         configuracionExiste: configSnap.exists(),
         totalPagadoRemoto,
         saldoPendienteRemoto,
@@ -606,6 +616,8 @@ export class MigrationService {
       prendas: 0,
       pagos: 0,
       avisos: 0,
+      movimientosCaja: 0,
+      sesionesCaja: 0,
       configuracion: false,
     };
 
@@ -615,6 +627,8 @@ export class MigrationService {
       prendas: 0,
       pagos: 0,
       avisos: 0,
+      movimientosCaja: 0,
+      sesionesCaja: 0,
     };
 
     const errores: string[] = [];
@@ -782,6 +796,50 @@ export class MigrationService {
           errores.push(`Error al migrar configuración: ${err.message}`);
         }
       }
+
+      // FASE 3B: MOVIMIENTOS Y SESIONES DE CAJA
+      for (const mov of backup.movimientosCaja || []) {
+        try {
+          const movRef = doc(db, FIRESTORE_COLLECTIONS.MOVIMIENTOS_CAJA, mov.id);
+          const movSnap = await getDoc(movRef);
+          if (movSnap.exists()) {
+            omitidos.movimientosCaja++;
+          } else {
+            currentBatch.set(movRef, {
+              ...mov,
+              migradoAt: serverTimestamp(),
+              migradoPor: adminUid,
+            });
+            batchCount++;
+            creados.movimientosCaja++;
+            await commitBatchIfFull();
+          }
+        } catch (err: any) {
+          errores.push(`Error al migrar movimiento de caja ${mov.id}: ${err.message}`);
+        }
+      }
+
+      for (const ses of backup.sesionesCaja || []) {
+        try {
+          const sesRef = doc(db, FIRESTORE_COLLECTIONS.SESIONES_CAJA, ses.id);
+          const sesSnap = await getDoc(sesRef);
+          if (sesSnap.exists()) {
+            omitidos.sesionesCaja++;
+          } else {
+            currentBatch.set(sesRef, {
+              ...ses,
+              migradoAt: serverTimestamp(),
+              migradoPor: adminUid,
+            });
+            batchCount++;
+            creados.sesionesCaja++;
+            await commitBatchIfFull();
+          }
+        } catch (err: any) {
+          errores.push(`Error al migrar sesión de caja ${ses.id}: ${err.message}`);
+        }
+      }
+      await commitBatchIfFull(true);
 
       // ---------------------------------------------------------------------
       // FASE 4: REGISTRO DE AUDITORÍA CONFIRMADA

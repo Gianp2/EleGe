@@ -78,3 +78,21 @@ export function generateAuditoriaId(): string {
   const suffix = getRandomSuffix(6);
   return `AUD_${timestamp}_${suffix}`;
 }
+
+/**
+ * Genera un ID seguro para un Movimiento de Caja (ej: "CAJ_24a1b_4k8n")
+ */
+export function generateMovimientoCajaId(): string {
+  const timestamp = Date.now().toString(36);
+  const suffix = getRandomSuffix(6);
+  return `CAJ_${timestamp}_${suffix}`;
+}
+
+/**
+ * Genera un ID seguro para una Sesión de Caja (ej: "SES_24a1b_9p1z")
+ */
+export function generateSesionCajaId(): string {
+  const timestamp = Date.now().toString(36);
+  const suffix = getRandomSuffix(5);
+  return `SES_${timestamp}_${suffix}`;
+}

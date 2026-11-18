@@ -4,7 +4,6 @@ import {
   Users,
   QrCode,
   ReceiptText,
-  RotateCcw,
   Settings,
   LogOut,
 } from 'lucide-react';
@@ -18,7 +17,6 @@ interface SidebarProps {
   onOpenScanner: () => void;
   onNewOrder: () => void;
   kpis: ResumenKPIs;
-  onResetData: () => void;
   onLogout?: () => void;
   userEmail?: string | null;
 }
@@ -28,7 +26,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectTab,
   onOpenScanner,
   kpis,
-  onResetData,
   onLogout,
   userEmail,
 }) => {
@@ -158,21 +155,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         <div className="flex items-center justify-between text-[11px] text-neutral-500 font-mono">
-          <span>v1.2.0 · LocalStorage</span>
+          <span>v1.4.0 · LocalStorage</span>
           <span className="flex items-center gap-1.5 text-emerald-700 font-medium">
             <span className="w-2 h-2 rounded-full bg-emerald-600" />
             Operativo
           </span>
         </div>
-        <button
-          type="button"
-          onClick={onResetData}
-          className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[11px] text-neutral-500 hover:text-neutral-800 hover:bg-neutral-100 rounded-lg transition-colors cursor-pointer"
-          title="Restaura los datos de demostración iniciales"
-        >
-          <RotateCcw className="w-3.5 h-3.5" />
-          <span>Restaurar datos demo</span>
-        </button>
       </div>
     </aside>
   );

@@ -233,16 +233,16 @@ export const ClientListView: React.FC<ClientListViewProps> = ({
   return (
     <div className="space-y-4">
       {/* 1. Barra de Herramientas y Búsqueda */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
         {/* Buscador Instantáneo Multi-campo */}
-        <div className="relative flex-1 max-w-lg">
+        <div className="relative flex-1 min-w-0">
           <Search className="w-4 h-4 text-neutral-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
             value={searchTerm}
             onChange={handleCambioSearch}
-            placeholder="Buscar por nombre, apellido, teléfono, ID o N° de pedido (#2401)..."
-            className="w-full bg-white border border-neutral-300 focus:border-neutral-500 text-xs sm:text-sm text-neutral-900 placeholder:text-neutral-400 rounded-xl pl-10 pr-3 py-2 outline-none shadow-2xs"
+            placeholder="Buscar nombre, teléfono, ID o pedido..."
+            className="w-full bg-white border border-neutral-300 focus:border-neutral-500 text-sm text-neutral-900 placeholder:text-neutral-400 rounded-xl pl-10 pr-8 py-2.5 outline-none shadow-2xs"
           />
           {searchTerm && (
             <button
@@ -251,7 +251,7 @@ export const ClientListView: React.FC<ClientListViewProps> = ({
                 setSearchTerm('');
                 setPaginaActual(1);
               }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-neutral-400 hover:text-neutral-700 cursor-pointer"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-neutral-400 hover:text-neutral-700 cursor-pointer p-1"
             >
               ✕
             </button>
@@ -259,18 +259,18 @@ export const ClientListView: React.FC<ClientListViewProps> = ({
         </div>
 
         {/* Acciones Superiores: Selector de orden y botón Nuevo Cliente */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 bg-white border border-neutral-300 rounded-xl px-2.5 py-1.5 shadow-2xs text-xs text-neutral-700">
-            <ArrowUpDown className="w-3.5 h-3.5 text-neutral-400" />
+        <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 bg-white border border-neutral-300 rounded-xl px-2.5 sm:px-3 min-h-[44px] shadow-2xs text-xs sm:text-sm text-neutral-700 min-w-0">
+            <ArrowUpDown className="w-4 h-4 text-neutral-400 shrink-0" />
             <select
               value={ordenamiento}
               onChange={(e) => setOrdenamiento(e.target.value as TipoOrdenamiento)}
               aria-label="Criterio de ordenamiento de clientes"
-              className="bg-transparent outline-none font-semibold text-neutral-800 cursor-pointer text-xs"
+              className="w-full bg-transparent outline-none font-semibold text-neutral-800 cursor-pointer text-xs sm:text-sm truncate"
             >
               <option value="ultima_visita">Última visita</option>
               <option value="mas_frecuentes">Más frecuentes</option>
-              <option value="recientes">Más recientes (Alta)</option>
+              <option value="recientes">Más recientes</option>
               <option value="alfabetico">Alfabético (A-Z)</option>
             </select>
           </div>
@@ -278,20 +278,20 @@ export const ClientListView: React.FC<ClientListViewProps> = ({
           <button
             type="button"
             onClick={onOpenNewClient}
-            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-neutral-900 hover:bg-neutral-800 rounded-xl shadow-xs transition-all cursor-pointer whitespace-nowrap active:scale-98"
+            className="inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 min-h-[44px] text-xs sm:text-sm font-bold text-white bg-neutral-900 hover:bg-neutral-800 rounded-xl shadow-xs transition-colors cursor-pointer whitespace-nowrap"
           >
-            <Plus className="w-4 h-4 stroke-[2.5]" />
+            <Plus className="w-4 h-4 stroke-[2.5] shrink-0" />
             <span>Nuevo Cliente</span>
           </button>
         </div>
       </div>
 
-      {/* 2. Pestañas / Filtros de Estado */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar text-xs">
+      {/* 2. Pestañas / Filtros de Estado en barra deslizable horizontal en móvil */}
+      <div className="flex items-center gap-1.5 text-xs overflow-x-auto no-scrollbar pb-0.5">
         <button
           type="button"
           onClick={() => handleCambioFiltro('todos')}
-          className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+          className={`shrink-0 min-h-[38px] px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
             filtroCategoria === 'todos'
               ? 'bg-neutral-900 text-white shadow-2xs'
               : 'bg-white text-neutral-600 hover:bg-neutral-100 border border-neutral-200'
@@ -306,14 +306,14 @@ export const ClientListView: React.FC<ClientListViewProps> = ({
         <button
           type="button"
           onClick={() => handleCambioFiltro('deuda')}
-          className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+          className={`shrink-0 min-h-[38px] px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
             filtroCategoria === 'deuda'
               ? 'bg-amber-600 text-white shadow-2xs'
               : 'bg-white text-neutral-700 hover:bg-amber-50 border border-neutral-200'
           }`}
         >
-          <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
-          <span>Con saldo deudor</span>
+          <AlertCircle className={`w-3.5 h-3.5 ${filtroCategoria === 'deuda' ? 'text-white' : 'text-amber-600'}`} />
+          <span>Con deuda</span>
           <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${filtroCategoria === 'deuda' ? 'bg-amber-700 text-white' : 'bg-amber-100 text-amber-900'}`}>
             {conteoTabs.deuda}
           </span>
@@ -322,14 +322,14 @@ export const ClientListView: React.FC<ClientListViewProps> = ({
         <button
           type="button"
           onClick={() => handleCambioFiltro('activos')}
-          className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+          className={`shrink-0 min-h-[38px] px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
             filtroCategoria === 'activos'
               ? 'bg-neutral-900 text-white shadow-2xs'
               : 'bg-white text-neutral-700 hover:bg-neutral-100 border border-neutral-200'
           }`}
         >
-          <Package className="w-3.5 h-3.5 text-blue-600" />
-          <span>Pedidos activos</span>
+          <Package className={`w-3.5 h-3.5 ${filtroCategoria === 'activos' ? 'text-sky-300' : 'text-blue-600'}`} />
+          <span>Activos</span>
           <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${filtroCategoria === 'activos' ? 'bg-neutral-700 text-white' : 'bg-neutral-100 text-neutral-600'}`}>
             {conteoTabs.activos}
           </span>
@@ -338,13 +338,13 @@ export const ClientListView: React.FC<ClientListViewProps> = ({
         <button
           type="button"
           onClick={() => handleCambioFiltro('listas')}
-          className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+          className={`shrink-0 min-h-[38px] px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
             filtroCategoria === 'listas'
               ? 'bg-emerald-700 text-white shadow-2xs'
               : 'bg-white text-neutral-700 hover:bg-emerald-50 border border-neutral-200'
           }`}
         >
-          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+          <CheckCircle2 className={`w-3.5 h-3.5 ${filtroCategoria === 'listas' ? 'text-white' : 'text-emerald-600'}`} />
           <span>Prendas listas</span>
           <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${filtroCategoria === 'listas' ? 'bg-emerald-800 text-white' : 'bg-emerald-100 text-emerald-900'}`}>
             {conteoTabs.listas}
@@ -354,7 +354,7 @@ export const ClientListView: React.FC<ClientListViewProps> = ({
         <button
           type="button"
           onClick={() => handleCambioFiltro('frecuentes')}
-          className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+          className={`shrink-0 min-h-[38px] px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
             filtroCategoria === 'frecuentes'
               ? 'bg-neutral-900 text-white shadow-2xs'
               : 'bg-white text-neutral-700 hover:bg-neutral-100 border border-neutral-200'
@@ -370,7 +370,7 @@ export const ClientListView: React.FC<ClientListViewProps> = ({
         <button
           type="button"
           onClick={() => handleCambioFiltro('nuevos')}
-          className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+          className={`shrink-0 min-h-[38px] px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
             filtroCategoria === 'nuevos'
               ? 'bg-neutral-900 text-white shadow-2xs'
               : 'bg-white text-neutral-700 hover:bg-neutral-100 border border-neutral-200'
@@ -535,20 +535,20 @@ export const ClientListView: React.FC<ClientListViewProps> = ({
                 <div
                   key={cliente.id}
                   onClick={() => onSelectClient(cliente)}
-                  className="p-4 hover:bg-neutral-50 transition-colors space-y-2.5 cursor-pointer"
+                  className="p-3.5 sm:p-4 hover:bg-neutral-50 transition-colors space-y-2.5 cursor-pointer"
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <div className="space-y-0.5">
-                      <div className="font-bold text-neutral-900 text-sm">
+                    <div className="space-y-0.5 min-w-0 flex-1">
+                      <div className="font-bold text-neutral-900 text-sm sm:text-base break-words">
                         {cliente.nombre} {cliente.apellido || ''}
                       </div>
-                      <div className="text-xs font-mono text-neutral-600 flex items-center gap-1">
-                        <Phone className="w-3.5 h-3.5 text-neutral-400" />
-                        {cliente.telefono}
+                      <div className="text-xs sm:text-sm font-mono text-neutral-600 flex items-center gap-1.5">
+                        <Phone className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
+                        <span className="truncate">{cliente.telefono}</span>
                       </div>
                     </div>
-                    <div className="flex flex-col items-end gap-1">
-                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-neutral-100 border border-neutral-200 text-neutral-700">
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-md bg-neutral-100 border border-neutral-200 text-neutral-700">
                         {cliente.id}
                       </span>
                       {renderInsigniaClasificacion(metricas.clasificacion)}
@@ -556,15 +556,15 @@ export const ClientListView: React.FC<ClientListViewProps> = ({
                   </div>
 
                   {metricas.prendasActivasListas > 0 && (
-                    <div className="px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-1.5">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                    <div className="px-2.5 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                       <span>{metricas.prendasActivasListas} prenda(s) listas para retirar</span>
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between text-xs pt-2 border-t border-neutral-100">
-                    <span className="text-neutral-500 font-mono">
-                      {metricas.totalPedidos} pedidos realizados
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs pt-2 border-t border-neutral-100">
+                    <span className="text-neutral-600 font-mono">
+                      {metricas.totalPedidos} pedidos
                     </span>
                     {tieneDeuda ? (
                       <span className="text-amber-700 font-mono font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
@@ -574,6 +574,33 @@ export const ClientListView: React.FC<ClientListViewProps> = ({
                       <span className="text-emerald-700 font-mono font-semibold">Al día ($0)</span>
                     )}
                   </div>
+
+                  <div className="grid grid-cols-[1fr_1fr_auto] items-center gap-2 pt-1" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      type="button"
+                      onClick={() => onNewOrderForClient(cliente)}
+                      className="inline-flex items-center justify-center gap-1.5 px-3 min-h-[40px] rounded-xl bg-neutral-900 text-white text-xs font-bold cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Pedido</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onEditClient(cliente)}
+                      className="inline-flex items-center justify-center gap-1.5 px-3 min-h-[40px] rounded-xl bg-neutral-100 text-neutral-800 border border-neutral-200 text-xs font-semibold cursor-pointer"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                      <span>Editar</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onDeleteClient(cliente)}
+                      className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-xl text-neutral-400 hover:text-rose-600 hover:bg-rose-50 cursor-pointer"
+                      aria-label="Eliminar cliente"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -581,17 +608,17 @@ export const ClientListView: React.FC<ClientListViewProps> = ({
 
           {/* 4. Barra de Paginación Accesible */}
           <div className="p-3 bg-neutral-50 border-t border-neutral-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-neutral-600">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center justify-center gap-2">
               <span>
                 Mostrando <strong className="text-neutral-900">{indexInicio + 1}</strong> a{' '}
                 <strong className="text-neutral-900">
                   {Math.min(indexInicio + itemsPorPagina, clientesOrdenados.length)}
                 </strong>{' '}
-                de <strong className="text-neutral-900">{clientesOrdenados.length}</strong> clientes
+                de <strong className="text-neutral-900">{clientesOrdenados.length}</strong>
               </span>
 
-              <div className="flex items-center gap-1 ml-2 pl-2 border-l border-neutral-300">
-                <span className="text-[11px] text-neutral-500">Filas:</span>
+              <div className="flex items-center gap-1 pl-2 border-l border-neutral-300">
+                <span className="text-xs text-neutral-500">Filas:</span>
                 <select
                   value={itemsPorPagina}
                   onChange={(e) => {
@@ -599,7 +626,7 @@ export const ClientListView: React.FC<ClientListViewProps> = ({
                     setPaginaActual(1);
                   }}
                   aria-label="Cantidad de clientes por página"
-                  className="bg-white border border-neutral-300 rounded-lg px-2 py-0.5 text-xs text-neutral-800 outline-none font-semibold cursor-pointer"
+                  className="bg-white border border-neutral-300 rounded-lg px-2 py-1 text-xs text-neutral-800 outline-none font-semibold cursor-pointer"
                 >
                   <option value={10}>10</option>
                   <option value={15}>15</option>
@@ -609,12 +636,12 @@ export const ClientListView: React.FC<ClientListViewProps> = ({
               </div>
             </div>
 
-            <div className="flex items-center gap-1">
+            <div className="flex flex-wrap items-center justify-center gap-1.5">
               <button
                 type="button"
                 onClick={() => cambiarPagina(paginaActual - 1)}
                 disabled={paginaActual === 1}
-                className="p-1.5 rounded-lg border border-neutral-300 bg-white hover:bg-neutral-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors shadow-2xs"
+                className="min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl border border-neutral-300 bg-white hover:bg-neutral-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors shadow-2xs"
                 title="Página anterior"
               >
                 <ChevronLeft className="w-4 h-4 text-neutral-700" />
@@ -631,7 +658,7 @@ export const ClientListView: React.FC<ClientListViewProps> = ({
                       <button
                         type="button"
                         onClick={() => cambiarPagina(p)}
-                        className={`w-7 h-7 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        className={`min-w-[36px] min-h-[36px] px-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                           paginaActual === p
                             ? 'bg-neutral-900 text-white shadow-2xs'
                             : 'bg-white hover:bg-neutral-100 border border-neutral-200 text-neutral-700'
@@ -647,7 +674,7 @@ export const ClientListView: React.FC<ClientListViewProps> = ({
                 type="button"
                 onClick={() => cambiarPagina(paginaActual + 1)}
                 disabled={paginaActual === totalPaginas}
-                className="p-1.5 rounded-lg border border-neutral-300 bg-white hover:bg-neutral-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors shadow-2xs"
+                className="min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl border border-neutral-300 bg-white hover:bg-neutral-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors shadow-2xs"
                 title="Página siguiente"
               >
                 <ChevronRight className="w-4 h-4 text-neutral-700" />

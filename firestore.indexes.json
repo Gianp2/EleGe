@@ -63,6 +63,46 @@
         { "fieldPath": "entidad", "order": "ASCENDING" },
         { "fieldPath": "timestamp", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "movimientos_caja",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tipo", "order": "ASCENDING" },
+        { "fieldPath": "fecha", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "movimientos_caja",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "categoria", "order": "ASCENDING" },
+        { "fieldPath": "fecha", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "movimientos_caja",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "metodo", "order": "ASCENDING" },
+        { "fieldPath": "fecha", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "movimientos_caja",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "pedidoId", "order": "ASCENDING" },
+        { "fieldPath": "fecha", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "sesiones_caja",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "fecha", "order": "DESCENDING" },
+        { "fieldPath": "horaApertura", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

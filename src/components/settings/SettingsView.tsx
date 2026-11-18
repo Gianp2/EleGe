@@ -26,6 +26,7 @@ import { ConfiguracionSistema, BackupPackage, BackupValidationResult } from '../
 import { storage } from '../../services/storage';
 import { formatMoneda, formatFechaHora } from '../../utils/formatters';
 import { ConfirmDialog } from '../common/ConfirmDialog';
+import { NumericInput } from '../common/NumericInput';
 import { useAuth } from '../../context/AuthContext';
 import { AUTHORIZED_ADMIN_UIDS } from '../../firebase/adminConfig';
 import { dataProviderManager } from '../../services/dataProvider';
@@ -55,7 +56,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onDataChanged, onLog
   // Diálogo de confirmación para restaurar
   const [confirmRestoreModal, setConfirmRestoreModal] = useState(false);
   const [confirmUndoModal, setConfirmUndoModal] = useState(false);
-  const [confirmResetDemoModal, setConfirmResetDemoModal] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -178,83 +178,83 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onDataChanged, onLog
   const metricasActuales = storage.exportarBackup().metadata;
 
   return (
-    <div className="w-full min-w-0 max-w-full space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Encabezado Principal */}
-      <div className="min-w-0 w-full bg-white p-4 sm:p-5 rounded-2xl border border-neutral-200 shadow-2xs flex flex-col gap-4">
-        <div>
+      <div className="bg-white p-4 sm:p-5 rounded-2xl border border-neutral-200 shadow-2xs flex flex-col gap-3.5">
+        <div className="min-w-0">
           <h2 className="text-base font-bold text-neutral-900 flex items-center gap-2">
-            <Building className="w-5 h-5 text-neutral-700" />
-            Configuración del Sistema y Resguardos
+            <Building className="w-5 h-5 text-neutral-700 shrink-0" />
+            <span>Configuración y Resguardos</span>
           </h2>
-          <p className="text-xs text-neutral-500 mt-0.5">
-            Gestión de copias de seguridad locales, parámetros de impresión y datos comerciales
+          <p className="text-xs sm:text-sm text-neutral-500 mt-0.5">
+            Copias de seguridad, base de datos, impresión y sesión
           </p>
         </div>
 
-        {/* Pestañas secundarias */}
-        <div className="flex w-full min-w-0 max-w-full items-center gap-1.5 overflow-x-auto overscroll-x-contain bg-neutral-100 p-1.5 rounded-xl border border-neutral-200 text-xs [scrollbar-width:thin]">
+        {/* Pestañas secundarias adaptables en fila única deslizable */}
+        <div className="flex items-center gap-1.5 bg-neutral-100 p-1.5 rounded-xl border border-neutral-200 text-xs w-full overflow-x-auto no-scrollbar">
           <button
             type="button"
             onClick={() => setActiveSubTab('backup')}
-            className={`shrink-0 whitespace-nowrap px-3 py-2 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+            className={`shrink-0 min-h-[40px] px-3 py-2 rounded-lg font-bold transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
               activeSubTab === 'backup'
                 ? 'bg-neutral-900 text-white shadow-2xs'
-                : 'text-neutral-600 hover:text-neutral-900'
+                : 'text-neutral-700 hover:text-neutral-900 hover:bg-white/60'
             }`}
           >
-            <Shield className="w-3.5 h-3.5" />
+            <Shield className="w-3.5 h-3.5 shrink-0" />
             <span>Copias de Seguridad</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveSubTab('database')}
-            className={`shrink-0 whitespace-nowrap px-3 py-2 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+            className={`shrink-0 min-h-[40px] px-3 py-2 rounded-lg font-bold transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
               activeSubTab === 'database'
                 ? 'bg-neutral-900 text-white shadow-2xs'
-                : 'text-neutral-600 hover:text-neutral-900'
+                : 'text-neutral-700 hover:text-neutral-900 hover:bg-white/60'
             }`}
           >
-            <Database className="w-3.5 h-3.5" />
+            <Database className="w-3.5 h-3.5 shrink-0" />
             <span>Base de datos</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveSubTab('comercio')}
-            className={`shrink-0 whitespace-nowrap px-3 py-2 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+            className={`shrink-0 min-h-[40px] px-3 py-2 rounded-lg font-bold transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
               activeSubTab === 'comercio'
                 ? 'bg-neutral-900 text-white shadow-2xs'
-                : 'text-neutral-600 hover:text-neutral-900'
+                : 'text-neutral-700 hover:text-neutral-900 hover:bg-white/60'
             }`}
           >
-            <Building className="w-3.5 h-3.5" />
+            <Building className="w-3.5 h-3.5 shrink-0" />
             <span>Datos del Lavadero</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveSubTab('tickets')}
-            className={`shrink-0 whitespace-nowrap px-3 py-2 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+            className={`shrink-0 min-h-[40px] px-3 py-2 rounded-lg font-bold transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
               activeSubTab === 'tickets'
                 ? 'bg-neutral-900 text-white shadow-2xs'
-                : 'text-neutral-600 hover:text-neutral-900'
+                : 'text-neutral-700 hover:text-neutral-900 hover:bg-white/60'
             }`}
           >
-            <Printer className="w-3.5 h-3.5" />
+            <Printer className="w-3.5 h-3.5 shrink-0" />
             <span>Impresión Térmica</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveSubTab('sesion')}
-            className={`shrink-0 whitespace-nowrap px-3 py-2 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+            className={`shrink-0 min-h-[40px] px-3 py-2 rounded-lg font-bold transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
               activeSubTab === 'sesion'
                 ? 'bg-neutral-900 text-white shadow-2xs'
-                : 'text-neutral-600 hover:text-neutral-900'
+                : 'text-neutral-700 hover:text-neutral-900 hover:bg-white/60'
             }`}
           >
-            <UserCheck className="w-3.5 h-3.5" />
+            <UserCheck className="w-3.5 h-3.5 shrink-0" />
             <span>Sesión Administradora</span>
           </button>
         </div>
@@ -263,7 +263,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onDataChanged, onLog
       {/* Alertas Globales de Notificación */}
       {mensajeExito && (
         <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs font-medium flex items-center justify-between shadow-2xs">
-          <div className="flex min-w-0 items-center gap-2">
+          <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
             <span>{mensajeExito}</span>
           </div>
@@ -279,7 +279,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onDataChanged, onLog
 
       {mensajeError && (
         <div className="p-4 rounded-xl bg-rose-50 border border-rose-300 text-rose-900 text-xs font-medium flex items-center justify-between shadow-2xs">
-          <div className="flex min-w-0 items-center gap-2">
+          <div className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
             <span>{mensajeError}</span>
           </div>
@@ -297,13 +297,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onDataChanged, onLog
       {/* 1. SECCIÓN: COPIAS DE SEGURIDAD (BACKUP Y RESTAURACIÓN)     */}
       {/* ========================================================== */}
       {activeSubTab === 'backup' && (
-        <div className="min-w-0 space-y-5">
+        <div className="space-y-5">
           {/* Fila de Exportar e Importar */}
-          <div className="grid min-w-0 grid-cols-1 lg:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             {/* Card: Exportar Copia de Seguridad */}
-            <div className="min-w-0 w-full bg-white p-4 sm:p-5 rounded-2xl border border-neutral-200 shadow-2xs flex flex-col justify-between space-y-4">
-              <div className="min-w-0 space-y-3">
-                <div className="flex min-w-0 items-center gap-2">
+            <div className="bg-white p-5 rounded-2xl border border-neutral-200 shadow-2xs flex flex-col justify-between space-y-4">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
                   <div className="p-2 rounded-xl bg-neutral-100 text-neutral-800">
                     <Download className="w-4 h-4 text-neutral-900" />
                   </div>
@@ -320,7 +320,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onDataChanged, onLog
                   <span className="text-[11px] font-bold text-neutral-600 block uppercase tracking-wider">
                     Contenido actual del sistema:
                   </span>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  <div className="grid grid-cols-2 gap-2 text-xs">
                     <div className="flex items-center gap-1.5 text-neutral-700">
                       <Users className="w-3.5 h-3.5 text-neutral-400" />
                       <span>{metricasActuales.totalClientes} clientes</span>
@@ -356,9 +356,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onDataChanged, onLog
             </div>
 
             {/* Card: Importar y Restaurar Copia */}
-            <div className="min-w-0 w-full bg-white p-4 sm:p-5 rounded-2xl border border-neutral-200 shadow-2xs flex flex-col justify-between space-y-4">
-              <div className="min-w-0 space-y-3">
-                <div className="flex min-w-0 items-center gap-2">
+            <div className="bg-white p-5 rounded-2xl border border-neutral-200 shadow-2xs flex flex-col justify-between space-y-4">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
                   <div className="p-2 rounded-xl bg-neutral-100 text-neutral-800">
                     <Upload className="w-4 h-4 text-neutral-900" />
                   </div>
@@ -382,10 +382,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onDataChanged, onLog
                   />
                   <label
                     htmlFor="backup-file-input"
-                    className="cursor-pointer flex min-w-0 flex-col items-center justify-center gap-1.5"
+                    className="cursor-pointer flex flex-col items-center justify-center gap-1.5"
                   >
                     <FileJson className="w-8 h-8 text-neutral-400" />
-                    <span className="text-xs font-bold text-neutral-800 break-all">
+                    <span className="text-xs font-bold text-neutral-800 break-all text-center">
                       {archivoSeleccionado ? archivoSeleccionado.name : 'Hacé clic para seleccionar archivo .JSON'}
                     </span>
                     <span className="text-[11px] text-neutral-500">
@@ -405,29 +405,29 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onDataChanged, onLog
                         : 'bg-rose-50 border-rose-300 text-rose-950'
                     }`}
                   >
-                    <div className="flex min-w-0 items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
                       <span className="font-bold flex items-center gap-1.5">
                         {resultadoValidacion.esValido ? (
                           <>
-                            <FileCheck className="w-4 h-4 text-emerald-600" />
+                            <FileCheck className="w-4 h-4 text-emerald-600 shrink-0" />
                             <span>Archivo Verificado e Íntegro</span>
                           </>
                         ) : (
                           <>
-                            <AlertCircle className="w-4 h-4 text-rose-600" />
+                            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
                             <span>Archivo No Válido</span>
                           </>
                         )}
                       </span>
                       {resultadoValidacion.resumen && (
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white border border-neutral-200">
+                        <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-white border border-neutral-200 shrink-0">
                           Esquema v{resultadoValidacion.resumen.versionEsquema}
                         </span>
                       )}
                     </div>
 
                     {resultadoValidacion.resumen && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[11px] pt-1 border-t border-emerald-200/60">
+                      <div className="grid grid-cols-2 gap-1.5 text-[11px] pt-1 border-t border-emerald-200/60">
                         <div>
                           <strong className="text-neutral-900 font-bold">Fecha: </strong>
                           {formatFechaHora(resultadoValidacion.resumen.fecha)}
@@ -497,12 +497,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onDataChanged, onLog
           </div>
 
           {/* Card: Respaldo de Seguridad Previo (Snapshot de Emergencia & Undo) */}
-          <div className="min-w-0 w-full bg-white p-4 sm:p-5 rounded-2xl border border-neutral-200 shadow-2xs space-y-3">
-            <div className="flex min-w-0 flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-              <div className="space-y-1">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-800 flex items-center gap-2">
-                  <Shield className="w-4 h-4 text-emerald-600" />
-                  Respaldo Automático de Seguridad Previo
+          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-neutral-200 shadow-2xs space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+              <div className="space-y-1 min-w-0">
+                <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-neutral-800 flex items-center gap-2">
+                  <Shield className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>Respaldo Automático de Seguridad Previo</span>
                 </h3>
                 <p className="text-xs text-neutral-500">
                   Cada vez que realizás una restauración, el sistema guarda una copia completa de los datos que fueron reemplazados para permitirte deshacer cualquier cambio accidental.
@@ -513,7 +513,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onDataChanged, onLog
                 <button
                   type="button"
                   onClick={handleDescargarSnapshot}
-                  className="px-3 py-1.5 text-xs font-semibold text-neutral-700 bg-neutral-100 hover:bg-neutral-200 border border-neutral-300 rounded-xl transition-colors cursor-pointer shadow-2xs flex items-center gap-1.5 shrink-0"
+                  className="w-full sm:w-auto px-3 py-2 text-xs font-semibold text-neutral-700 bg-neutral-100 hover:bg-neutral-200 border border-neutral-300 rounded-xl transition-colors cursor-pointer shadow-2xs flex items-center justify-center gap-1.5 shrink-0"
                 >
                   <Download className="w-3.5 h-3.5" />
                   <span>Descargar Copia Previa</span>
@@ -523,12 +523,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onDataChanged, onLog
 
             {safetySnapshot ? (
               <div className="p-3.5 bg-neutral-50 border border-neutral-200 rounded-xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-xs">
-                <div className="space-y-1">
+                <div className="space-y-1 min-w-0">
                   <div className="flex items-center gap-2 text-neutral-900 font-bold">
-                    <Calendar className="w-3.5 h-3.5 text-neutral-500" />
+                    <Calendar className="w-3.5 h-3.5 text-neutral-500 shrink-0" />
                     <span>Guardado el {formatFechaHora(safetySnapshot.metadata.fechaGeneracion)}</span>
                   </div>
-                  <div className="text-[11px] text-neutral-600">
+                  <div className="text-xs text-neutral-600">
                     Contiene {safetySnapshot.clientes.length} clientes, {safetySnapshot.pedidos.length} pedidos y {safetySnapshot.metadata.totalPrendas} prendas.
                   </div>
                 </div>
@@ -536,10 +536,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onDataChanged, onLog
                 <button
                   type="button"
                   onClick={() => setConfirmUndoModal(true)}
-                  className="px-4 py-2 bg-neutral-900 text-white font-bold text-xs rounded-xl hover:bg-neutral-800 transition-colors cursor-pointer shadow-xs active:scale-98 flex items-center justify-center gap-1.5 shrink-0"
+                  className="w-full sm:w-auto px-4 py-2.5 bg-neutral-900 text-white font-bold text-xs rounded-xl hover:bg-neutral-800 transition-colors cursor-pointer shadow-xs flex items-center justify-center gap-1.5 shrink-0"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Deshacer y Restaurar este Respaldo</span>
+                  <span>Deshacer y Restaurar Respaldo</span>
                 </button>
               </div>
             ) : (
@@ -550,7 +550,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onDataChanged, onLog
           </div>
 
           {/* Card: Buenas Prácticas de Respaldo */}
-          <div className="min-w-0 p-4 bg-amber-50/70 border border-amber-200 rounded-2xl flex items-start gap-3 text-xs text-amber-900">
+          <div className="p-4 bg-amber-50/70 border border-amber-200 rounded-2xl flex items-start gap-3 text-xs text-amber-900">
             <HelpCircle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
             <div className="space-y-1">
               <strong className="block font-bold">Recomendación para el operador de Lavadero eLeGe:</strong>
@@ -573,8 +573,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onDataChanged, onLog
       {/* 3. SECCIÓN: DATOS DEL LAVADERO                             */}
       {/* ========================================================== */}
       {activeSubTab === 'comercio' && (
-        <form onSubmit={handleGuardarConfiguracion} className="min-w-0 space-y-4">
-          <div className="min-w-0 w-full bg-white p-4 sm:p-5 rounded-2xl border border-neutral-200 shadow-2xs space-y-4">
+        <form onSubmit={handleGuardarConfiguracion} className="space-y-4">
+          <div className="bg-white p-5 rounded-2xl border border-neutral-200 shadow-2xs space-y-4">
             <div className="border-b border-neutral-100 pb-3">
               <h3 className="text-sm font-bold text-neutral-900">Información del Establecimiento</h3>
               <p className="text-xs text-neutral-500">
@@ -582,7 +582,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onDataChanged, onLog
               </p>
             </div>
 
-            <div className="grid min-w-0 grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-neutral-800 mb-1">
                   Nombre Comercial
@@ -592,7 +592,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onDataChanged, onLog
                   required
                   value={config.nombreComercio}
                   onChange={(e) => setConfig({ ...config, nombreComercio: e.target.value })}
-                  className="w-full min-w-0 max-w-full bg-neutral-50 border border-neutral-300 focus:border-neutral-500 rounded-xl px-3 py-2 text-xs text-neutral-900 outline-none font-semibold shadow-2xs"
+                  className="w-full bg-neutral-50 border border-neutral-300 focus:border-neutral-500 rounded-xl px-3 py-2 text-xs text-neutral-900 outline-none font-semibold shadow-2xs"
                 />
               </div>
 
@@ -605,7 +605,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onDataChanged, onLog
                   required
                   value={config.telefono}
                   onChange={(e) => setConfig({ ...config, telefono: e.target.value })}
-                  className="w-full min-w-0 max-w-full bg-neutral-50 border border-neutral-300 focus:border-neutral-500 rounded-xl px-3 py-2 text-xs text-neutral-900 outline-none font-mono shadow-2xs"
+                  className="w-full bg-neutral-50 border border-neutral-300 focus:border-neutral-500 rounded-xl px-3 py-2 text-xs text-neutral-900 outline-none font-mono shadow-2xs"
                 />
               </div>
 
@@ -618,7 +618,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onDataChanged, onLog
                   value={config.direccion}
                   onChange={(e) => setConfig({ ...config, direccion: e.target.value })}
                   placeholder="Ej: Av. Corrientes 3450, CABA"
-                  className="w-full min-w-0 max-w-full bg-neutral-50 border border-neutral-300 focus:border-neutral-500 rounded-xl px-3 py-2 text-xs text-neutral-900 outline-none shadow-2xs"
+                  className="w-full bg-neutral-50 border border-neutral-300 focus:border-neutral-500 rounded-xl px-3 py-2 text-xs text-neutral-900 outline-none shadow-2xs"
                 />
               </div>
 
@@ -631,19 +631,19 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onDataChanged, onLog
                   value={config.lemaOTicketPie}
                   onChange={(e) => setConfig({ ...config, lemaOTicketPie: e.target.value })}
                   placeholder="Ej: Muchas gracias por su confianza. Cuidado artesanal."
-                  className="w-full min-w-0 max-w-full bg-neutral-50 border border-neutral-300 focus:border-neutral-500 rounded-xl px-3 py-2 text-xs text-neutral-900 outline-none shadow-2xs resize-none"
+                  className="w-full bg-neutral-50 border border-neutral-300 focus:border-neutral-500 rounded-xl px-3 py-2 text-xs text-neutral-900 outline-none shadow-2xs resize-none"
                 />
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-3 border-t border-neutral-200">
+            <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-neutral-200">
               <span className="text-xs text-neutral-500">
                 {guardadoExitoso && <strong className="text-emerald-700">✓ Cambios guardados correctamente</strong>}
               </span>
 
               <button
                 type="submit"
-                className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-neutral-900 text-white font-bold text-xs rounded-xl hover:bg-neutral-800 transition-all shadow-xs cursor-pointer active:scale-98"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-5 py-2.5 bg-neutral-900 text-white font-bold text-xs sm:text-sm rounded-xl hover:bg-neutral-800 transition-colors shadow-xs cursor-pointer"
               >
                 <Save className="w-4 h-4" />
                 <span>Guardar Parámetros</span>
@@ -657,8 +657,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onDataChanged, onLog
       {/* 3. SECCIÓN: IMPRESIÓN Y PREFERENCIAS OPERATIVAS            */}
       {/* ========================================================== */}
       {activeSubTab === 'tickets' && (
-        <form onSubmit={handleGuardarConfiguracion} className="min-w-0 space-y-4">
-          <div className="min-w-0 w-full bg-white p-4 sm:p-5 rounded-2xl border border-neutral-200 shadow-2xs space-y-4">
+        <form onSubmit={handleGuardarConfiguracion} className="space-y-4">
+          <div className="bg-white p-5 rounded-2xl border border-neutral-200 shadow-2xs space-y-4">
             <div className="border-b border-neutral-100 pb-3">
               <h3 className="text-sm font-bold text-neutral-900">Parámetros de Impresión Térmica</h3>
               <p className="text-xs text-neutral-500">
@@ -666,7 +666,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onDataChanged, onLog
               </p>
             </div>
 
-            <div className="grid min-w-0 grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-neutral-800 mb-1">
                   Ancho de Impresora Térmica Predeterminado
@@ -679,7 +679,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onDataChanged, onLog
                       formatoTicketDefecto: e.target.value as '80mm' | '58mm',
                     })
                   }
-                  className="w-full min-w-0 max-w-full bg-neutral-50 border border-neutral-300 focus:border-neutral-500 rounded-xl px-3 py-2 text-xs text-neutral-900 outline-none font-semibold shadow-2xs cursor-pointer"
+                  className="w-full bg-neutral-50 border border-neutral-300 focus:border-neutral-500 rounded-xl px-3 py-2 text-xs text-neutral-900 outline-none font-semibold shadow-2xs cursor-pointer"
                 >
                   <option value="80mm">80 mm (Ticket estándar de mostrador)</option>
                   <option value="58mm">58 mm (Impresora compacta / mini POS)</option>
@@ -693,18 +693,17 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onDataChanged, onLog
                 <label className="block text-xs font-bold text-neutral-800 mb-1">
                   Plazo de Entrega Predeterminado (Días)
                 </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="15"
+                <NumericInput
+                  min={1}
+                  max={15}
                   value={config.diasEstimadosEntregaDefecto}
-                  onChange={(e) =>
+                  onChange={(val) =>
                     setConfig({
                       ...config,
-                      diasEstimadosEntregaDefecto: Number(e.target.value),
+                      diasEstimadosEntregaDefecto: val,
                     })
                   }
-                  className="w-full min-w-0 max-w-full bg-neutral-50 border border-neutral-300 focus:border-neutral-500 rounded-xl px-3 py-2 text-xs text-neutral-900 outline-none font-mono shadow-2xs"
+                  className="w-full bg-neutral-50 border border-neutral-300 focus:border-neutral-500 rounded-xl px-3 py-2 text-xs text-neutral-900 outline-none font-mono shadow-2xs"
                 />
                 <span className="text-[11px] text-neutral-500 mt-1 block">
                   Días sumados automáticamente a la fecha de recepción al crear nuevos pedidos.
@@ -712,14 +711,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onDataChanged, onLog
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-3 border-t border-neutral-200">
+            <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-neutral-200">
               <span className="text-xs text-neutral-500">
                 {guardadoExitoso && <strong className="text-emerald-700">✓ Preferencias guardadas correctamente</strong>}
               </span>
 
               <button
                 type="submit"
-                className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-neutral-900 text-white font-bold text-xs rounded-xl hover:bg-neutral-800 transition-all shadow-xs cursor-pointer active:scale-98"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-5 py-2.5 bg-neutral-900 text-white font-bold text-xs sm:text-sm rounded-xl hover:bg-neutral-800 transition-colors shadow-xs cursor-pointer"
               >
                 <Save className="w-4 h-4" />
                 <span>Guardar Preferencias</span>
@@ -733,10 +732,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onDataChanged, onLog
       {/* 4. SECCIÓN: SESIÓN Y CONTROL DE ADMINISTRADORA             */}
       {/* ========================================================== */}
       {activeSubTab === 'sesion' && (
-        <div className="min-w-0 space-y-4">
-          <div className="min-w-0 w-full bg-white p-4 sm:p-5 rounded-2xl border border-neutral-200 shadow-2xs space-y-4">
+        <div className="space-y-4">
+          <div className="bg-white p-5 rounded-2xl border border-neutral-200 shadow-2xs space-y-4">
             <div className="border-b border-neutral-100 pb-3">
-              <h3 className="text-sm font-bold text-neutral-900 flex flex-wrap items-center gap-2">
+              <h3 className="text-sm font-bold text-neutral-900 flex items-center gap-2">
                 <UserCheck className="w-4 h-4 text-emerald-600" />
                 <span>Sesión de Administradora Activa</span>
               </h3>
@@ -745,17 +744,17 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onDataChanged, onLog
               </p>
             </div>
 
-            <div className="grid min-w-0 grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="min-w-0 p-3.5 bg-neutral-50 border border-neutral-200 rounded-xl space-y-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="p-3.5 bg-neutral-50 border border-neutral-200 rounded-xl space-y-1">
                 <span className="text-[10px] uppercase font-mono tracking-wider text-neutral-400 font-bold block">
                   Correo Electrónico
                 </span>
-                <span className="text-xs font-bold text-neutral-900 block font-mono break-all">
+                <span className="text-xs font-bold text-neutral-900 block font-mono">
                   {currentUser?.email || 'admin@elege.com'}
                 </span>
               </div>
 
-              <div className="min-w-0 p-3.5 bg-neutral-50 border border-neutral-200 rounded-xl space-y-1">
+              <div className="p-3.5 bg-neutral-50 border border-neutral-200 rounded-xl space-y-1">
                 <span className="text-[10px] uppercase font-mono tracking-wider text-neutral-400 font-bold block">
                   Estado de Autorización
                 </span>
@@ -774,20 +773,20 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onDataChanged, onLog
                 </span>
               </div>
 
-              <div className="min-w-0 p-3.5 bg-neutral-50 border border-neutral-200 rounded-xl space-y-1">
+              <div className="p-3.5 bg-neutral-50 border border-neutral-200 rounded-xl space-y-1">
                 <span className="text-[10px] uppercase font-mono tracking-wider text-neutral-400 font-bold block">
                   Proyecto Firebase
                 </span>
-                <span className="text-xs font-mono font-bold text-neutral-800 block break-all">
+                <span className="text-xs font-mono font-bold text-neutral-800 block">
                   elege-99d0c
                 </span>
               </div>
 
-              <div className="min-w-0 p-3.5 bg-neutral-50 border border-neutral-200 rounded-xl space-y-1">
+              <div className="p-3.5 bg-neutral-50 border border-neutral-200 rounded-xl space-y-1">
                 <span className="text-[10px] uppercase font-mono tracking-wider text-neutral-400 font-bold block">
                   Dominio Auth
                 </span>
-                <span className="text-xs font-mono font-bold text-neutral-800 block break-all">
+                <span className="text-xs font-mono font-bold text-neutral-800 block">
                   elege-99d0c.firebaseapp.com
                 </span>
               </div>
@@ -803,7 +802,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onDataChanged, onLog
                 <button
                   type="button"
                   onClick={onLogout}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-xl transition-all cursor-pointer shadow-2xs"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-bold text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-xl transition-colors cursor-pointer shadow-2xs"
                 >
                   <LogOut className="w-4 h-4 text-red-600" />
                   <span>Cerrar Sesión Segura</span>
@@ -813,29 +812,29 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onDataChanged, onLog
           </div>
 
           {/* Estado de Proveedor de Datos y Preparación de Firestore */}
-          <div className="min-w-0 w-full bg-white p-4 sm:p-5 rounded-2xl border border-neutral-200 shadow-2xs space-y-4">
-            <div className="border-b border-neutral-100 pb-3 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-              <div>
-                <h3 className="text-sm font-bold text-neutral-900 flex flex-wrap items-center gap-2">
-                  <Database className="w-4 h-4 text-neutral-800" />
-                  <span>Proveedor de Almacenamiento y Estado de Base de Datos</span>
+          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-neutral-200 shadow-2xs space-y-4">
+            <div className="border-b border-neutral-100 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div className="min-w-0">
+                <h3 className="text-sm font-bold text-neutral-900 flex items-center gap-2">
+                  <Database className="w-4 h-4 text-neutral-800 shrink-0" />
+                  <span>Proveedor de Almacenamiento</span>
                 </h3>
-                <p className="text-xs text-neutral-500">
-                  Control explícito del motor de persistencia activo y preparación de Cloud Firestore
+                <p className="text-xs text-neutral-500 mt-0.5">
+                  Control del motor de persistencia activo y Cloud Firestore
                 </p>
               </div>
 
-              <span className="px-2.5 py-1 text-[11px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-full">
+              <span className="px-2.5 py-1 text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-full self-start sm:self-auto shrink-0">
                 {dataProviderManager.isUsingLocalStorage() ? 'LocalStorage Activo' : 'Firestore Activo'}
               </span>
             </div>
 
-            <div className="grid min-w-0 grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="min-w-0 p-3.5 bg-neutral-50 border border-neutral-200 rounded-xl space-y-1.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="p-3.5 bg-neutral-50 border border-neutral-200 rounded-xl space-y-1.5">
                 <span className="text-[10px] uppercase font-mono tracking-wider text-neutral-500 font-bold block">
                   Motor Activo Predeterminado
                 </span>
-                <span className="text-xs font-bold text-neutral-900 flex flex-wrap items-center gap-1.5">
+                <span className="text-xs font-bold text-neutral-900 flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-emerald-600" />
                   Almacenamiento Local (LocalStorage)
                 </span>
@@ -844,11 +843,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onDataChanged, onLog
                 </p>
               </div>
 
-              <div className="min-w-0 p-3.5 bg-neutral-50 border border-neutral-200 rounded-xl space-y-1.5">
+              <div className="p-3.5 bg-neutral-50 border border-neutral-200 rounded-xl space-y-1.5">
                 <span className="text-[10px] uppercase font-mono tracking-wider text-neutral-500 font-bold block">
                   Estado de Cloud Firestore (Etapa 3)
                 </span>
-                <span className="text-xs font-bold text-neutral-900 flex flex-wrap items-center gap-1.5">
+                <span className="text-xs font-bold text-neutral-900 flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-amber-500" />
                   Preparado / En Espera de Migración
                 </span>
@@ -858,13 +857,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onDataChanged, onLog
               </div>
             </div>
 
-            <div className="min-w-0 p-3 bg-neutral-100/70 border border-neutral-200 rounded-xl text-[11px] text-neutral-600 space-y-1">
+            <div className="p-3 bg-neutral-100/70 border border-neutral-200 rounded-xl text-[11px] text-neutral-600 space-y-1">
               <strong className="text-neutral-800 block">Colecciones preparadas en Firestore (elege-99d0c):</strong>
               <div className="font-mono text-[10px] text-neutral-700 flex flex-wrap gap-2">
                 <span className="bg-white px-2 py-0.5 rounded border border-neutral-200">clientes</span>
                 <span className="bg-white px-2 py-0.5 rounded border border-neutral-200">pedidos</span>
                 <span className="bg-white px-2 py-0.5 rounded border border-neutral-200">prendas</span>
                 <span className="bg-white px-2 py-0.5 rounded border border-neutral-200">pagos</span>
+                <span className="bg-white px-2 py-0.5 rounded border border-neutral-200">movimientos_caja</span>
+                <span className="bg-white px-2 py-0.5 rounded border border-neutral-200">sesiones_caja</span>
                 <span className="bg-white px-2 py-0.5 rounded border border-neutral-200">avisos_whatsapp</span>
                 <span className="bg-white px-2 py-0.5 rounded border border-neutral-200">configuracion</span>
                 <span className="bg-white px-2 py-0.5 rounded border border-neutral-200">auditoria</span>

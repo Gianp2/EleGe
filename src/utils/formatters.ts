@@ -2,7 +2,7 @@
  * Utilidades de formateo para Lavadero eLeGe
  */
 
-import { EstadoPedido, EstadoPrenda, EstadoPago, TipoServicio, MetodoPago } from '../types';
+import { EstadoPedido, EstadoPrenda, EstadoPago, TipoServicio, MetodoPago, CategoriaMovimientoCaja } from '../types';
 
 export function formatMoneda(monto: number): string {
   const limpio = isNaN(monto) ? 0 : Math.round(monto);
@@ -12,6 +12,34 @@ export function formatMoneda(monto: number): string {
     maximumFractionDigits: 0,
     minimumFractionDigits: 0,
   }).format(limpio);
+}
+
+/**
+ * Devuelve fecha local YYYY-MM-DD sin corrimiento de zona horaria UTC.
+ */
+export function getLocalDateKey(input?: string | Date): string {
+  const d = input ? (typeof input === 'string' ? new Date(input) : input) : new Date();
+  if (isNaN(d.getTime())) {
+    if (typeof input === 'string' && /^\d{4}-\d{2}-\d{2}/.test(input)) {
+      return input.slice(0, 10);
+    }
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  }
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+export function getStartOfWeekDateKey(baseDate: Date = new Date()): string {
+  const d = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate());
+  const day = d.getDay(); // 0 domingo .. 6 sábado
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diffToMonday);
+  return getLocalDateKey(d);
+}
+
+export function getStartOfMonthDateKey(baseDate: Date = new Date()): string {
+  const d = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1);
+  return getLocalDateKey(d);
 }
 
 export function formatFechaCorta(fechaIsoOString: string): string {
@@ -117,6 +145,35 @@ export const METODO_PAGO_LABELS: Record<MetodoPago, string> = {
   credito: 'Tarjeta Crédito',
   otro: 'Otro Medio',
 };
+
+export const CATEGORIA_CAJA_LABELS: Record<CategoriaMovimientoCaja, string> = {
+  cobro_pedido: 'Cobro de pedido',
+  senia_pedido: 'Seña de pedido',
+  ingreso_manual: 'Otro ingreso manual',
+  ajuste_positivo: 'Ajuste de caja (+)',
+  productos_limpieza: 'Productos de limpieza',
+  insumos: 'Insumos',
+  servicios: 'Servicios',
+  sueldos: 'Sueldos',
+  mantenimiento: 'Mantenimiento',
+  otros_gastos: 'Otros gastos',
+};
+
+export const CATEGORIAS_INGRESO: CategoriaMovimientoCaja[] = [
+  'cobro_pedido',
+  'senia_pedido',
+  'ingreso_manual',
+  'ajuste_positivo',
+];
+
+export const CATEGORIAS_EGRESO: CategoriaMovimientoCaja[] = [
+  'productos_limpieza',
+  'insumos',
+  'servicios',
+  'sueldos',
+  'mantenimiento',
+  'otros_gastos',
+];
 
 /**
  * Normaliza número telefónico para wa.me de forma exhaustiva

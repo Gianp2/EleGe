@@ -184,14 +184,74 @@ service cloud.firestore {
       return data.keys().hasAll(['accion', 'fase', 'entidad', 'entidadId', 'detalles', 'usuarioUid']) &&
         data.keys().hasOnly(['id', 'accion', 'fase', 'entidad', 'entidadId', 'detalles', 'usuarioUid', 'usuarioEmail', 'timestamp', 'datosPrevios', 'datosNuevos']) &&
         (!('id' in data) || (data.id is string && data.id == docId && isValidId(data.id))) &&
-        data.accion in ['CREATE', 'UPDATE', 'DELETE', 'STATUS_CHANGE', 'PAYMENT', 'PAYMENT_CANCEL', 'ORDER_CANCEL', 'RESTORE', 'DEACTIVATE'] &&
+        data.accion in ['CREATE', 'UPDATE', 'DELETE', 'STATUS_CHANGE', 'PAYMENT', 'PAYMENT_CANCEL', 'ORDER_CANCEL', 'RESTORE', 'DEACTIVATE', 'CASH_MOVEMENT', 'CASH_CORRECTION', 'CASH_CANCEL', 'CASH_OPEN', 'CASH_CLOSE'] &&
         data.fase in ['INICIADA', 'CONFIRMADA', 'FALLIDA'] &&
-        data.entidad in ['cliente', 'pedido', 'prenda', 'pago', 'configuracion', 'sistema'] &&
+        data.entidad in ['cliente', 'pedido', 'prenda', 'pago', 'movimiento_caja', 'sesion_caja', 'configuracion', 'sistema'] &&
         data.entidadId is string && isValidId(data.entidadId) &&
         data.detalles is string && data.detalles.size() > 0 && data.detalles.size() <= 1000 &&
         data.usuarioUid is string && data.usuarioUid == request.auth.uid &&
         (!('usuarioEmail' in data) || (data.usuarioEmail is string && data.usuarioEmail.size() <= 100)) &&
         (!('timestamp' in data) || isValidTimestamp(data.timestamp));
+    }
+
+    function isValidMovimientoCaja(data, docId) {
+      return data.keys().hasAll(['id', 'tipo', 'categoria', 'concepto', 'monto', 'fecha', 'metodo', 'origen', 'creadoEn']) &&
+        data.keys().hasOnly(['id', 'tipo', 'categoria', 'concepto', 'monto', 'fecha', 'metodo', 'pedidoId', 'codigoPedido', 'clienteId', 'clienteNombre', 'pagoIdRelacionado', 'observaciones', 'origen', 'anulado', 'motivoAnulacion', 'anuladoAt', 'anuladoPor', 'historialCambios', 'creadoEn', 'actualizadoEn', 'createdAt', 'createdBy', 'updatedAt', 'updatedBy', 'migradoAt', 'migradoPor']) &&
+        data.id is string && data.id == docId && isValidId(data.id) &&
+        data.tipo in ['ingreso', 'egreso'] &&
+        (
+          (data.tipo == 'ingreso' && data.categoria in ['cobro_pedido', 'senia_pedido', 'ingreso_manual', 'ajuste_positivo']) ||
+          (data.tipo == 'egreso' && data.categoria in ['productos_limpieza', 'insumos', 'servicios', 'sueldos', 'mantenimiento', 'otros_gastos'])
+        ) &&
+        data.concepto is string && data.concepto.size() >= 2 && data.concepto.size() <= 200 &&
+        data.concepto.matches('^.*\\S.*\\S.*$') &&
+        data.monto is number && data.monto > 0 &&
+        data.fecha is string && data.fecha.size() >= 10 &&
+        data.metodo in ['efectivo', 'transferencia', 'debito', 'credito', 'otro'] &&
+        data.origen in ['pedido_pago', 'manual'] &&
+        data.creadoEn is string && data.creadoEn.size() >= 10 &&
+        (!('pedidoId' in data) || data.pedidoId == null || (data.pedidoId is string && isValidId(data.pedidoId) && pedidoExiste(data.pedidoId))) &&
+        (!('codigoPedido' in data) || data.codigoPedido == null || (data.codigoPedido is string && data.codigoPedido.size() <= 30)) &&
+        (!('clienteId' in data) || data.clienteId == null || (data.clienteId is string && isValidId(data.clienteId))) &&
+        (!('clienteNombre' in data) || data.clienteNombre == null || (data.clienteNombre is string && data.clienteNombre.size() <= 200)) &&
+        (!('pagoIdRelacionado' in data) || data.pagoIdRelacionado == null || (data.pagoIdRelacionado is string && isValidId(data.pagoIdRelacionado))) &&
+        (!('observaciones' in data) || data.observaciones == null || (data.observaciones is string && data.observaciones.size() <= 500)) &&
+        (!('anulado' in data) || data.anulado is bool) &&
+        (!('motivoAnulacion' in data) || data.motivoAnulacion == null || (data.motivoAnulacion is string && data.motivoAnulacion.size() <= 500)) &&
+        (!('anuladoAt' in data) || data.anuladoAt == null || isValidTimestamp(data.anuladoAt)) &&
+        (!('anuladoPor' in data) || data.anuladoPor == null || (data.anuladoPor is string && data.anuladoPor == request.auth.uid)) &&
+        (!('historialCambios' in data) || data.historialCambios is list) &&
+        (!('actualizadoEn' in data) || data.actualizadoEn == null || (data.actualizadoEn is string && data.actualizadoEn.size() >= 10)) &&
+        (!('createdAt' in data) || isValidTimestamp(data.createdAt)) &&
+        (!('updatedAt' in data) || isValidTimestamp(data.updatedAt)) &&
+        (!('createdBy' in data) || (data.createdBy is string && data.createdBy == request.auth.uid)) &&
+        (!('updatedBy' in data) || (data.updatedBy is string && data.updatedBy == request.auth.uid)) &&
+        (!('migradoAt' in data) || isValidTimestamp(data.migradoAt)) &&
+        (!('migradoPor' in data) || (data.migradoPor is string && data.migradoPor.size() <= 128));
+    }
+
+    function isValidSesionCaja(data, docId) {
+      return data.keys().hasAll(['id', 'fecha', 'horaApertura', 'saldoInicialEfectivo', 'cerrada']) &&
+        data.keys().hasOnly(['id', 'fecha', 'horaApertura', 'saldoInicialEfectivo', 'saldoInicialDigital', 'notasApertura', 'cerrada', 'horaCierre', 'arqueoRealEfectivo', 'diferenciaArqueo', 'observacionesCierre', 'resumenCierre', 'historialAjustes', 'createdAt', 'createdBy', 'updatedAt', 'updatedBy', 'migradoAt', 'migradoPor']) &&
+        data.id is string && data.id == docId && isValidId(data.id) &&
+        data.fecha is string && data.fecha.size() >= 10 && data.fecha.size() <= 20 &&
+        data.horaApertura is string && data.horaApertura.size() >= 10 &&
+        data.saldoInicialEfectivo is number && data.saldoInicialEfectivo >= 0 &&
+        (!('saldoInicialDigital' in data) || data.saldoInicialDigital == null || (data.saldoInicialDigital is number && data.saldoInicialDigital >= 0)) &&
+        (!('notasApertura' in data) || data.notasApertura == null || (data.notasApertura is string && data.notasApertura.size() <= 500)) &&
+        data.cerrada is bool &&
+        (!('horaCierre' in data) || data.horaCierre == null || (data.horaCierre is string && data.horaCierre.size() >= 10)) &&
+        (!('arqueoRealEfectivo' in data) || data.arqueoRealEfectivo == null || (data.arqueoRealEfectivo is number && data.arqueoRealEfectivo >= 0)) &&
+        (!('diferenciaArqueo' in data) || data.diferenciaArqueo == null || data.diferenciaArqueo is number) &&
+        (!('observacionesCierre' in data) || data.observacionesCierre == null || (data.observacionesCierre is string && data.observacionesCierre.size() <= 500)) &&
+        (!('resumenCierre' in data) || data.resumenCierre == null || data.resumenCierre is map) &&
+        (!('historialAjustes' in data) || data.historialAjustes is list) &&
+        (!('createdAt' in data) || isValidTimestamp(data.createdAt)) &&
+        (!('updatedAt' in data) || isValidTimestamp(data.updatedAt)) &&
+        (!('createdBy' in data) || (data.createdBy is string && data.createdBy == request.auth.uid)) &&
+        (!('updatedBy' in data) || (data.updatedBy is string && data.updatedBy == request.auth.uid)) &&
+        (!('migradoAt' in data) || isValidTimestamp(data.migradoAt)) &&
+        (!('migradoPor' in data) || (data.migradoPor is string && data.migradoPor.size() <= 128));
     }
 
     function isValidAvisoWhatsApp(data) {
@@ -331,6 +391,57 @@ service cloud.firestore {
         isValidId(auditId) &&
         isValidAuditoria(request.resource.data, auditId);
       allow update, delete: if false;
+    }
+
+    // 8. Movimientos de Caja (Ingresos manuales y egresos categorizados)
+    //    - Creación: montos positivos, sin nacer anulado
+    //    - Modificación: solo corrección o anulación con historial obligatorio y sin borrar
+    //    - Eliminación física PROHIBIDA
+    match /movimientos_caja/{movimientoId} {
+      allow read: if isAuthorizedAdmin();
+      allow create: if isAuthorizedAdmin() &&
+        isValidId(movimientoId) &&
+        isValidMovimientoCaja(request.resource.data, movimientoId) &&
+        request.resource.data.get('anulado', false) == false;
+      allow update: if isAuthorizedAdmin() &&
+        isValidId(movimientoId) &&
+        resource.data.get('anulado', false) != true &&
+        isValidMovimientoCaja(request.resource.data, movimientoId) &&
+        request.resource.data.id == resource.data.id &&
+        request.resource.data.tipo == resource.data.tipo &&
+        request.resource.data.origen == resource.data.origen &&
+        request.resource.data.creadoEn == resource.data.creadoEn &&
+        request.resource.data.historialCambios is list &&
+        request.resource.data.historialCambios.size() >= 1 &&
+        (
+          request.resource.data.get('anulado', false) == false ||
+          (
+            request.resource.data.anulado == true &&
+            request.resource.data.motivoAnulacion is string &&
+            request.resource.data.motivoAnulacion.size() >= 3 &&
+            request.resource.data.motivoAnulacion.matches('^.*\\S.*\\S.*\\S.*$') &&
+            isValidTimestamp(request.resource.data.anuladoAt) &&
+            request.resource.data.anuladoPor == request.auth.uid
+          )
+        );
+      allow delete: if false;
+    }
+
+    // 9. Sesiones de Caja (Apertura, ajuste de saldo inicial y cierre con arqueo)
+    //    - Una vez cerrada, la sesión es inmutable para preservar integridad del arqueo
+    match /sesiones_caja/{sesionId} {
+      allow read: if isAuthorizedAdmin();
+      allow create: if isAuthorizedAdmin() &&
+        isValidId(sesionId) &&
+        isValidSesionCaja(request.resource.data, sesionId);
+      allow update: if isAuthorizedAdmin() &&
+        isValidId(sesionId) &&
+        resource.data.cerrada != true &&
+        isValidSesionCaja(request.resource.data, sesionId) &&
+        request.resource.data.id == resource.data.id &&
+        request.resource.data.fecha == resource.data.fecha &&
+        request.resource.data.horaApertura == resource.data.horaApertura;
+      allow delete: if false;
     }
   }
 }

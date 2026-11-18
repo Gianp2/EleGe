@@ -8,6 +8,8 @@ export const FIRESTORE_COLLECTIONS = {
   PEDIDOS: 'pedidos',
   PRENDAS: 'prendas',
   PAGOS: 'pagos',
+  MOVIMIENTOS_CAJA: 'movimientos_caja',
+  SESIONES_CAJA: 'sesiones_caja',
   AVISOS_WHATSAPP: 'avisos_whatsapp',
   CONFIGURACION: 'configuracion',
   AUDITORIA: 'auditoria',
@@ -33,9 +35,22 @@ export interface RegistroAuditoria {
     | 'PAYMENT_CANCEL'
     | 'ORDER_CANCEL'
     | 'RESTORE'
-    | 'DEACTIVATE';
+    | 'DEACTIVATE'
+    | 'CASH_MOVEMENT'
+    | 'CASH_CORRECTION'
+    | 'CASH_CANCEL'
+    | 'CASH_OPEN'
+    | 'CASH_CLOSE';
   fase: FaseAuditoria;
-  entidad: 'cliente' | 'pedido' | 'prenda' | 'pago' | 'configuracion' | 'sistema';
+  entidad:
+    | 'cliente'
+    | 'pedido'
+    | 'prenda'
+    | 'pago'
+    | 'movimiento_caja'
+    | 'sesion_caja'
+    | 'configuracion'
+    | 'sistema';
   entidadId: string;
   detalles: string;
   usuarioUid: string;
@@ -63,4 +78,70 @@ export interface PagoFirestore {
   anuladoPor?: string;
   registradoAt?: any;
   registradoPor?: string;
+}
+
+export interface MovimientoCajaFirestore {
+  id: string;
+  tipo: 'ingreso' | 'egreso';
+  categoria:
+    | 'cobro_pedido'
+    | 'senia_pedido'
+    | 'ingreso_manual'
+    | 'ajuste_positivo'
+    | 'productos_limpieza'
+    | 'insumos'
+    | 'servicios'
+    | 'sueldos'
+    | 'mantenimiento'
+    | 'otros_gastos';
+  concepto: string;
+  monto: number;
+  fecha: string;
+  metodo: 'efectivo' | 'transferencia' | 'debito' | 'credito' | 'otro';
+  pedidoId?: string;
+  codigoPedido?: string;
+  clienteId?: string;
+  clienteNombre?: string;
+  pagoIdRelacionado?: string;
+  observaciones?: string;
+  origen: 'pedido_pago' | 'manual';
+  anulado?: boolean;
+  motivoAnulacion?: string;
+  anuladoAt?: any;
+  anuladoPor?: string;
+  historialCambios?: any[];
+  creadoEn: string;
+  actualizadoEn?: string;
+  createdAt?: any;
+  createdBy?: string;
+  updatedAt?: any;
+  updatedBy?: string;
+}
+
+export interface SesionCajaFirestore {
+  id: string;
+  fecha: string;
+  horaApertura: string;
+  saldoInicialEfectivo: number;
+  saldoInicialDigital?: number;
+  notasApertura?: string;
+  cerrada: boolean;
+  horaCierre?: string;
+  arqueoRealEfectivo?: number;
+  diferenciaArqueo?: number;
+  observacionesCierre?: string;
+  resumenCierre?: {
+    ingresosEfectivo: number;
+    egresosEfectivo: number;
+    efectivoEsperado: number;
+    totalIngresos: number;
+    totalEgresos: number;
+    balanceNeto: number;
+    saldoTotalFinal: number;
+  };
+  historialAjustes?: any[];
+  createdAt?: any;
+  createdBy?: string;
+  updatedAt?: any;
+  updatedBy?: string;
 }

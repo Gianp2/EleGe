@@ -16,9 +16,22 @@ import {
   BackupPackage,
   BackupMetadata,
   BackupValidationResult,
+  MovimientoCaja,
+  MovimientoCajaCambio,
+  SesionCaja,
+  ResumenCaja,
+  TipoMovimientoCaja,
+  CategoriaMovimientoCaja,
+  MetodoPago,
 } from '../types';
 import { codificarQRCliente, codificarQRPedido, codificarQRPrenda } from '../utils/qr';
-import { normalizarTelefonoWhatsApp } from '../utils/formatters';
+import {
+  normalizarTelefonoWhatsApp,
+  getLocalDateKey,
+  CATEGORIA_CAJA_LABELS,
+  CATEGORIAS_INGRESO,
+  CATEGORIAS_EGRESO,
+} from '../utils/formatters';
 
 const STORAGE_KEYS = {
   CLIENTES: 'elege_clientes_v1',
@@ -26,6 +39,10 @@ const STORAGE_KEYS = {
   CONFIGURACION: 'elege_configuracion_v1',
   INITIALIZED: 'elege_initialized_v1',
   SAFETY_SNAPSHOT: 'elege_safety_snapshot_pre_restore',
+  MOVIMIENTOS_CAJA: 'elege_movimientos_caja_v1',
+  SESIONES_CAJA: 'elege_sesiones_caja_v1',
+  CAJA_PAGOS_HISTORIAL: 'elege_caja_pagos_historial_v1',
+  DEMO_CLEANED: 'elege_demo_cleaned_v1',
 };
 
 const CONFIGURACION_DEFAULT: ConfiguracionSistema = {
@@ -40,264 +57,13 @@ const CONFIGURACION_DEFAULT: ConfiguracionSistema = {
 };
 
 
-// Datos iniciales de demostración reales y coherentes
-const CLIENTES_INICIALES: Cliente[] = [
-  {
-    id: 'CLI-101',
-    nombre: 'Martín',
-    apellido: 'Soria',
-    telefono: '11 4589-2234',
-    observaciones: 'Cliente habitual. Cuidado extra con camisas de lino.',
-    fechaAlta: new Date(Date.now() - 30 * 86400000).toISOString(),
-    qrPayload: codificarQRCliente('CLI-101'),
-  },
-  {
-    id: 'CLI-102',
-    nombre: 'Florencia',
-    apellido: 'Gómez',
-    telefono: '11 6784-9012',
-    observaciones: 'Retira siempre después de las 18:00 hs.',
-    fechaAlta: new Date(Date.now() - 15 * 86400000).toISOString(),
-    qrPayload: codificarQRCliente('CLI-102'),
-  },
-  {
-    id: 'CLI-103',
-    nombre: 'Agustín',
-    apellido: 'Rossi',
-    telefono: '11 3412-8877',
-    observaciones: 'Pago siempre con transferencia.',
-    fechaAlta: new Date(Date.now() - 7 * 86400000).toISOString(),
-    qrPayload: codificarQRCliente('CLI-103'),
-  },
-  {
-    id: 'CLI-104',
-    nombre: 'Valentina',
-    apellido: 'Vázquez',
-    telefono: '11 5566-3344',
-    observaciones: 'Solicita perfume suave en las prendas.',
-    fechaAlta: new Date(Date.now() - 3 * 86400000).toISOString(),
-    qrPayload: codificarQRCliente('CLI-104'),
-  },
-];
-
-function crearDatosIniciales(): { clientes: Cliente[]; pedidos: Pedido[] } {
-  const hoy = new Date();
-  const fechaHoyStr = hoy.toISOString();
-  
-  const fechaEstimada1 = new Date(hoy.getTime() + 86400000).toISOString().split('T')[0];
-  const fechaEstimada2 = new Date(hoy.getTime() + 2 * 86400000).toISOString().split('T')[0];
-  const fechaEstimadaAyer = new Date(hoy.getTime() - 86400000).toISOString().split('T')[0];
-
-  const pedidos: Pedido[] = [
-    // Pedido 1: Listo para retirar, tiene saldo adeudado
-    {
-      id: 'PED-2401',
-      codigoVisible: '#2401',
-      clienteId: 'CLI-101',
-      fechaRecepcion: new Date(hoy.getTime() - 2 * 86400000).toISOString(),
-      fechaEstimadaEntrega: fechaEstimadaAyer,
-      prendas: [
-        {
-          id: 'PRN-2401-1',
-          pedidoId: 'PED-2401',
-          clienteId: 'CLI-101',
-          tipo: 'Traje 2 piezas',
-          descripcion: 'Gris marengo, saco y pantalón entallado',
-          servicio: 'tintoreria',
-          precio: 7500,
-          observaciones: 'Botón superior del saco flojo',
-          estado: 'listo',
-          qrPayload: codificarQRPrenda('PRN-2401-1', 'PED-2401', 'CLI-101'),
-          fechaActualizacion: new Date(hoy.getTime() - 86400000).toISOString(),
-        },
-        {
-          id: 'PRN-2401-2',
-          pedidoId: 'PED-2401',
-          clienteId: 'CLI-101',
-          tipo: 'Camisa de vestir',
-          descripcion: 'Blanca cuello italiano, talle 41',
-          servicio: 'lavado_planchado',
-          precio: 4800,
-          observaciones: 'Mancha leve de café en puño derecho tratada',
-          estado: 'listo',
-          qrPayload: codificarQRPrenda('PRN-2401-2', 'PED-2401', 'CLI-101'),
-          fechaActualizacion: new Date(hoy.getTime() - 86400000).toISOString(),
-        },
-      ],
-      total: 12300,
-      saldoPendiente: 6300,
-      estadoPago: 'parcial',
-      estadoGeneral: 'listo',
-      observacionesGenerales: 'Prendas con funda protectora.',
-      pagos: [
-        {
-          id: 'PAG-1001',
-          pedidoId: 'PED-2401',
-          clienteId: 'CLI-101',
-          fecha: new Date(hoy.getTime() - 2 * 86400000).toISOString(),
-          monto: 6000,
-          metodo: 'efectivo',
-          nota: 'Seña inicial en mostrador',
-          esSenia: true,
-        },
-      ],
-      avisosWhatsApp: [],
-      qrPayload: codificarQRPedido('PED-2401'),
-    },
-
-    // Pedido 2: Mixto (1 prenda lista, 1 prenda en proceso)
-    {
-      id: 'PED-2402',
-      codigoVisible: '#2402',
-      clienteId: 'CLI-102',
-      fechaRecepcion: new Date(hoy.getTime() - 1 * 86400000).toISOString(),
-      fechaEstimadaEntrega: fechaEstimada1,
-      prendas: [
-        {
-          id: 'PRN-2402-1',
-          pedidoId: 'PED-2402',
-          clienteId: 'CLI-102',
-          tipo: 'Acolchado 2 plazas',
-          descripcion: 'Estampado nórdico plumas reversible',
-          servicio: 'acolchados_frazadas',
-          precio: 9500,
-          observaciones: 'Etiqueta original desgastada',
-          estado: 'listo',
-          qrPayload: codificarQRPrenda('PRN-2402-1', 'PED-2402', 'CLI-102'),
-          fechaActualizacion: new Date().toISOString(),
-        },
-        {
-          id: 'PRN-2402-2',
-          pedidoId: 'PED-2402',
-          clienteId: 'CLI-102',
-          tipo: 'Cortinas dobles',
-          descripcion: 'Voile blanco 2 paños de 2.20m',
-          servicio: 'cortinas',
-          precio: 6200,
-          observaciones: 'Dobladillo descosido en un extremo',
-          estado: 'en_proceso',
-          qrPayload: codificarQRPrenda('PRN-2402-2', 'PED-2402', 'CLI-102'),
-          fechaActualizacion: new Date().toISOString(),
-        },
-      ],
-      total: 15700,
-      saldoPendiente: 15700,
-      estadoPago: 'pendiente',
-      estadoGeneral: 'en_proceso',
-      observacionesGenerales: 'Avisar cuando ambas estén listas.',
-      pagos: [],
-      avisosWhatsApp: [],
-      qrPayload: codificarQRPedido('PED-2402'),
-    },
-
-    // Pedido 3: Recibido hoy temprano, pagado por adelantado
-    {
-      id: 'PED-2403',
-      codigoVisible: '#2403',
-      clienteId: 'CLI-103',
-      fechaRecepcion: fechaHoyStr,
-      fechaEstimadaEntrega: fechaEstimada2,
-      prendas: [
-        {
-          id: 'PRN-2403-1',
-          pedidoId: 'PED-2403',
-          clienteId: 'CLI-103',
-          tipo: 'Pantalón de vestir',
-          descripcion: 'Gris oscuro franela talle 44',
-          servicio: 'solo_planchado',
-          precio: 2600,
-          estado: 'recibido',
-          qrPayload: codificarQRPrenda('PRN-2403-1', 'PED-2403', 'CLI-103'),
-          fechaActualizacion: fechaHoyStr,
-        },
-        {
-          id: 'PRN-2403-2',
-          pedidoId: 'PED-2403',
-          clienteId: 'CLI-103',
-          tipo: 'Camperón de plumas',
-          descripcion: 'Negro con capucha desmontable Columbia',
-          servicio: 'desmanchado_especial',
-          precio: 5900,
-          observaciones: 'Mancha de grasa en bolsillo frontal',
-          estado: 'recibido',
-          qrPayload: codificarQRPrenda('PRN-2403-2', 'PED-2403', 'CLI-103'),
-          fechaActualizacion: fechaHoyStr,
-        },
-      ],
-      total: 8500,
-      saldoPendiente: 0,
-      estadoPago: 'pagado',
-      estadoGeneral: 'recibido',
-      observacionesGenerales: 'Abonó total por adelantado.',
-      pagos: [
-        {
-          id: 'PAG-1002',
-          pedidoId: 'PED-2403',
-          clienteId: 'CLI-103',
-          fecha: fechaHoyStr,
-          monto: 8500,
-          metodo: 'transferencia',
-          nota: 'Comprobante #99482',
-          esSenia: false,
-        },
-      ],
-      avisosWhatsApp: [],
-      qrPayload: codificarQRPedido('PED-2403'),
-    },
-
-    // Pedido 4: Entregado y pagado
-    {
-      id: 'PED-2400',
-      codigoVisible: '#2400',
-      clienteId: 'CLI-104',
-      fechaRecepcion: new Date(hoy.getTime() - 4 * 86400000).toISOString(),
-      fechaEstimadaEntrega: fechaEstimadaAyer,
-      prendas: [
-        {
-          id: 'PRN-2400-1',
-          pedidoId: 'PED-2400',
-          clienteId: 'CLI-104',
-          tipo: 'Vestido de fiesta',
-          descripcion: 'Verde esmeralda satén largo',
-          servicio: 'tintoreria',
-          precio: 7500,
-          estado: 'entregado',
-          qrPayload: codificarQRPrenda('PRN-2400-1', 'PED-2400', 'CLI-104'),
-          fechaActualizacion: new Date(hoy.getTime() - 86400000).toISOString(),
-        },
-      ],
-      total: 7500,
-      saldoPendiente: 0,
-      estadoPago: 'pagado',
-      estadoGeneral: 'entregado',
-      fechaEntregaEfectiva: new Date(hoy.getTime() - 86400000).toISOString(),
-      pagos: [
-        {
-          id: 'PAG-1000',
-          pedidoId: 'PED-2400',
-          clienteId: 'CLI-104',
-          fecha: new Date(hoy.getTime() - 4 * 86400000).toISOString(),
-          monto: 7500,
-          metodo: 'debito',
-          nota: 'Cobrado con terminal posnet',
-          esSenia: false,
-        },
-      ],
-      avisosWhatsApp: [
-        {
-          fecha: new Date(hoy.getTime() - 2 * 86400000).toISOString(),
-          pedidoId: 'PED-2400',
-          clienteId: 'CLI-104',
-          telefono: '11 5566-3344',
-          mensaje: 'Aviso de retiro enviado por WhatsApp',
-        },
-      ],
-      qrPayload: codificarQRPedido('PED-2400'),
-    },
-  ];
-
-  return { clientes: CLIENTES_INICIALES, pedidos };
-}
+const DEMO_PEDIDO_IDS = new Set(['PED-2400', 'PED-2401', 'PED-2402', 'PED-2403']);
+const DEMO_CLIENTES_FIRMAS: Record<string, { nombre: string; telefono: string }> = {
+  'CLI-101': { nombre: 'Martín', telefono: '11 4589-2234' },
+  'CLI-102': { nombre: 'Florencia', telefono: '11 6784-9012' },
+  'CLI-103': { nombre: 'Agustín', telefono: '11 3412-8877' },
+  'CLI-104': { nombre: 'Valentina', telefono: '11 5566-3344' },
+};
 
 class StorageService {
   private listeners: Array<() => void> = [];
@@ -310,13 +76,42 @@ class StorageService {
     try {
       const initialized = localStorage.getItem(STORAGE_KEYS.INITIALIZED);
       if (!initialized) {
-        const { clientes, pedidos } = crearDatosIniciales();
-        localStorage.setItem(STORAGE_KEYS.CLIENTES, JSON.stringify(clientes));
-        localStorage.setItem(STORAGE_KEYS.PEDIDOS, JSON.stringify(pedidos));
+        localStorage.setItem(STORAGE_KEYS.CLIENTES, JSON.stringify([]));
+        localStorage.setItem(STORAGE_KEYS.PEDIDOS, JSON.stringify([]));
         localStorage.setItem(STORAGE_KEYS.CONFIGURACION, JSON.stringify(CONFIGURACION_DEFAULT));
         localStorage.setItem(STORAGE_KEYS.INITIALIZED, 'true');
-      } else if (!localStorage.getItem(STORAGE_KEYS.CONFIGURACION)) {
-        localStorage.setItem(STORAGE_KEYS.CONFIGURACION, JSON.stringify(CONFIGURACION_DEFAULT));
+        localStorage.setItem(STORAGE_KEYS.DEMO_CLEANED, 'true');
+      } else {
+        if (!localStorage.getItem(STORAGE_KEYS.CONFIGURACION)) {
+          localStorage.setItem(STORAGE_KEYS.CONFIGURACION, JSON.stringify(CONFIGURACION_DEFAULT));
+        }
+
+        // Limpieza única de registros de ejemplo pre-cargados en navegadores anteriores
+        if (localStorage.getItem(STORAGE_KEYS.DEMO_CLEANED) !== 'true') {
+          const pedidosActuales: Pedido[] = JSON.parse(
+            localStorage.getItem(STORAGE_KEYS.PEDIDOS) || '[]'
+          );
+          const pedidosLimpios = Array.isArray(pedidosActuales)
+            ? pedidosActuales.filter((p) => !DEMO_PEDIDO_IDS.has(p.id))
+            : [];
+          localStorage.setItem(STORAGE_KEYS.PEDIDOS, JSON.stringify(pedidosLimpios));
+
+          const clientesConPedidosReales = new Set(pedidosLimpios.map((p) => p.clienteId));
+          const clientesActuales: Cliente[] = JSON.parse(
+            localStorage.getItem(STORAGE_KEYS.CLIENTES) || '[]'
+          );
+          const clientesLimpios = Array.isArray(clientesActuales)
+            ? clientesActuales.filter((c) => {
+                const firma = DEMO_CLIENTES_FIRMAS[c.id];
+                if (!firma) return true;
+                if (clientesConPedidosReales.has(c.id)) return true;
+                return c.nombre !== firma.nombre || c.telefono !== firma.telefono;
+              })
+            : [];
+          localStorage.setItem(STORAGE_KEYS.CLIENTES, JSON.stringify(clientesLimpios));
+          localStorage.removeItem(STORAGE_KEYS.SESIONES_CAJA);
+          localStorage.setItem(STORAGE_KEYS.DEMO_CLEANED, 'true');
+        }
       }
     } catch (e) {
       console.error('Error inicializando localStorage:', e);
@@ -550,9 +345,11 @@ class StorageService {
 
     pedido.prendas.push(nuevaPrenda);
 
-    // Recalcular totales contables
+    // Recalcular totales contables (excluyendo pagos anulados)
     pedido.total = pedido.prendas.reduce((acc, p) => acc + p.precio, 0);
-    const totalPagado = pedido.pagos.reduce((acc, p) => acc + p.monto, 0);
+    const totalPagado = pedido.pagos
+      .filter((p) => !p.anulado)
+      .reduce((acc, p) => acc + p.monto, 0);
     pedido.saldoPendiente = Math.max(0, Math.round(pedido.total - totalPagado));
 
     if (pedido.saldoPendiente === 0) {
@@ -584,7 +381,7 @@ class StorageService {
 
     const montoLimpio = Math.round(pagoData.monto);
 
-    if (montoLimpio <= 0) {
+    if (!Number.isFinite(montoLimpio) || montoLimpio <= 0) {
       return { ok: false, error: 'El monto del pago debe ser mayor a cero' };
     }
 
@@ -598,6 +395,7 @@ class StorageService {
     // Prevención de pagos duplicados instantáneos
     const ahoraMs = Date.now();
     const esDuplicadoReciente = pedido.pagos.some((p) => {
+      if (p.anulado) return false;
       const tiempoPago = new Date(p.fecha).getTime();
       return (
         p.monto === montoLimpio &&
@@ -611,7 +409,7 @@ class StorageService {
     }
 
     const nuevoPago: Pago = {
-      id: `PAG-${ahoraMs.toString().slice(-6)}`,
+      id: `PAG-${ahoraMs.toString().slice(-6)}-${Math.random().toString(36).slice(2, 5)}`,
       pedidoId: pedido.id,
       clienteId: pedido.clienteId,
       fecha: new Date().toISOString(),
@@ -623,7 +421,9 @@ class StorageService {
 
     pedido.pagos.push(nuevoPago);
 
-    const totalPagado = pedido.pagos.reduce((acc, p) => acc + p.monto, 0);
+    const totalPagado = pedido.pagos
+      .filter((p) => !p.anulado)
+      .reduce((acc, p) => acc + p.monto, 0);
     pedido.saldoPendiente = Math.max(0, Math.round(pedido.total - totalPagado));
 
     if (pedido.saldoPendiente === 0) {
@@ -653,7 +453,7 @@ class StorageService {
   public getKPIs(): ResumenKPIs {
     const pedidos = this.getPedidos();
     const ahora = new Date();
-    const hoyStr = ahora.toISOString().split('T')[0];
+    const hoyStr = getLocalDateKey(ahora);
 
     let pedidosHoy = 0;
     let prendasEnProceso = 0;
@@ -667,7 +467,7 @@ class StorageService {
     for (const pedido of pedidos) {
       if (pedido.estadoGeneral === 'cancelado') continue;
 
-      if (pedido.fechaRecepcion.startsWith(hoyStr)) {
+      if (getLocalDateKey(pedido.fechaRecepcion) === hoyStr) {
         pedidosHoy++;
       }
 
@@ -684,15 +484,16 @@ class StorageService {
         if (
           prenda.estado === 'entregado' &&
           prenda.fechaActualizacion &&
-          prenda.fechaActualizacion.startsWith(hoyStr)
+          getLocalDateKey(prenda.fechaActualizacion) === hoyStr
         ) {
           prendasEntregadasHoy++;
         }
       }
 
-      // Pagos
+      // Pagos (excluye anulados)
       for (const pago of pedido.pagos) {
-        if (pago.fecha.startsWith(hoyStr)) {
+        if (pago.anulado) continue;
+        if (getLocalDateKey(pago.fecha) === hoyStr) {
           ingresosHoy += pago.monto;
         }
         const fechaPago = new Date(pago.fecha);
@@ -702,6 +503,19 @@ class StorageService {
         if (esMismoMesYAno) {
           ingresosMes += pago.monto;
         }
+      }
+    }
+
+    // Incluir también ingresos manuales vigentes en KPIs de ingresos reales de caja
+    const manuales = this.getMovimientosCajaManuales();
+    for (const mov of manuales) {
+      if (mov.anulado || mov.tipo !== 'ingreso') continue;
+      if (getLocalDateKey(mov.fecha) === hoyStr) {
+        ingresosHoy += mov.monto;
+      }
+      const f = new Date(mov.fecha);
+      if (f.getFullYear() === ahora.getFullYear() && f.getMonth() === ahora.getMonth()) {
+        ingresosMes += mov.monto;
       }
     }
 
@@ -776,6 +590,7 @@ class StorageService {
     const pagos: (Pago & { clienteNombre?: string; codigoPedido?: string })[] = [];
     for (const pedido of pedidos) {
       for (const pago of pedido.pagos) {
+        if (pago.anulado) continue;
         pagos.push({
           ...pago,
           clienteNombre: clienteMap.get(pedido.clienteId) || 'Cliente no encontrado',
@@ -785,6 +600,712 @@ class StorageService {
     }
 
     return pagos.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
+  }
+
+  // --- MÓDULO CAJA Y BALANCE ---
+
+  private getHistorialPagosMap(): Record<string, MovimientoCajaCambio[]> {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.CAJA_PAGOS_HISTORIAL);
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  }
+
+  private saveHistorialPago(pagoId: string, cambio: MovimientoCajaCambio): void {
+    const map = this.getHistorialPagosMap();
+    map[pagoId] = [...(map[pagoId] || []), cambio];
+    localStorage.setItem(STORAGE_KEYS.CAJA_PAGOS_HISTORIAL, JSON.stringify(map));
+  }
+
+  public getMovimientosCajaManuales(): MovimientoCaja[] {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.MOVIMIENTOS_CAJA);
+      const list: MovimientoCaja[] = raw ? JSON.parse(raw) : [];
+      return Array.isArray(list) ? list : [];
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Devuelve todos los movimientos reales de Caja:
+   * - Proyección determinística y sin duplicados (Set por pago.id) de todos los cobros y señas de pedidos.
+   * - Movimientos manuales (ingresos manuales y todos los egresos).
+   * Los saldos pendientes de pedidos NUNCA se incluyen como ingresos hasta que se cobran.
+   */
+  public getMovimientosCajaUnificados(incluirAnulados = true): MovimientoCaja[] {
+    const pedidos = this.getPedidos();
+    const clientes = this.getClientes();
+    const clienteMap = new Map(clientes.map((c) => [c.id, `${c.nombre} ${c.apellido || ''}`.trim()]));
+    const historialPagos = this.getHistorialPagosMap();
+
+    const pagosProcesadosIds = new Set<string>();
+    const movimientosDePagos: MovimientoCaja[] = [];
+
+    for (const pedido of pedidos) {
+      const nombreCliente = clienteMap.get(pedido.clienteId) || 'Cliente mostrador';
+      for (const pago of pedido.pagos || []) {
+        if (!pago.id || pagosProcesadosIds.has(pago.id)) continue;
+        pagosProcesadosIds.add(pago.id);
+
+        if (!incluirAnulados && pago.anulado) continue;
+
+        movimientosDePagos.push({
+          id: `CAJ-PAG-${pago.id}`,
+          tipo: 'ingreso',
+          categoria: pago.esSenia ? 'senia_pedido' : 'cobro_pedido',
+          concepto: pago.esSenia
+            ? `Seña Pedido ${pedido.codigoVisible}`
+            : `Cobro Pedido ${pedido.codigoVisible}`,
+          monto: pago.monto,
+          fecha: pago.fecha,
+          metodo: pago.metodo,
+          pedidoId: pedido.id,
+          codigoPedido: pedido.codigoVisible,
+          clienteId: pedido.clienteId,
+          clienteNombre: nombreCliente,
+          pagoIdRelacionado: pago.id,
+          observaciones: pago.nota || undefined,
+          origen: 'pedido_pago',
+          anulado: Boolean(pago.anulado),
+          motivoAnulacion: pago.motivoAnulacion,
+          anuladoAt: pago.anuladoAt,
+          historialCambios: historialPagos[pago.id],
+          creadoEn: pago.fecha,
+        });
+      }
+    }
+
+    const manuales = this.getMovimientosCajaManuales().filter((m) =>
+      incluirAnulados ? true : !m.anulado
+    );
+
+    const todos = [...movimientosDePagos, ...manuales];
+    return todos.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
+  }
+
+  public registrarMovimientoCaja(data: {
+    tipo: TipoMovimientoCaja;
+    categoria: CategoriaMovimientoCaja;
+    concepto: string;
+    monto: number;
+    fecha?: string;
+    metodo: MetodoPago;
+    pedidoId?: string;
+    codigoPedido?: string;
+    clienteId?: string;
+    clienteNombre?: string;
+    observaciones?: string;
+  }): { ok: boolean; movimiento?: MovimientoCaja; error?: string } {
+    const montoLimpio = Math.round(Number(data.monto));
+    if (!Number.isFinite(montoLimpio) || montoLimpio <= 0) {
+      return { ok: false, error: 'El importe debe ser un número mayor a cero.' };
+    }
+
+    const conceptoLimpio = (data.concepto || '').trim();
+    if (conceptoLimpio.length < 2) {
+      return { ok: false, error: 'El concepto es obligatorio (mínimo 2 caracteres).' };
+    }
+
+    if (data.tipo === 'ingreso' && !CATEGORIAS_INGRESO.includes(data.categoria)) {
+      return { ok: false, error: 'La categoría seleccionada no corresponde a un ingreso.' };
+    }
+    if (data.tipo === 'egreso' && !CATEGORIAS_EGRESO.includes(data.categoria)) {
+      return { ok: false, error: 'La categoría seleccionada no corresponde a un egreso.' };
+    }
+
+    const manuales = this.getMovimientosCajaManuales();
+    const ahoraMs = Date.now();
+
+    // Prevención de duplicación por doble clic (3 segundos)
+    const duplicado = manuales.some((m) => {
+      if (m.anulado) return false;
+      const creadoMs = new Date(m.creadoEn).getTime();
+      return (
+        m.tipo === data.tipo &&
+        m.categoria === data.categoria &&
+        m.concepto.toLowerCase() === conceptoLimpio.toLowerCase() &&
+        m.monto === montoLimpio &&
+        m.metodo === data.metodo &&
+        ahoraMs - creadoMs < 3500
+      );
+    });
+
+    if (duplicado) {
+      return { ok: false, error: 'Movimiento idéntico recién registrado. Evitando duplicación.' };
+    }
+
+    const ahoraIso = new Date().toISOString();
+    const fechaFinal = data.fecha && !isNaN(new Date(data.fecha).getTime()) ? data.fecha : ahoraIso;
+
+    const nuevoMovimiento: MovimientoCaja = {
+      id: `CAJ-${ahoraMs.toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
+      tipo: data.tipo,
+      categoria: data.categoria,
+      concepto: conceptoLimpio,
+      monto: montoLimpio,
+      fecha: fechaFinal,
+      metodo: data.metodo,
+      pedidoId: data.pedidoId,
+      codigoPedido: data.codigoPedido,
+      clienteId: data.clienteId,
+      clienteNombre: data.clienteNombre,
+      observaciones: data.observaciones?.trim() || undefined,
+      origen: 'manual',
+      anulado: false,
+      creadoEn: ahoraIso,
+    };
+
+    manuales.unshift(nuevoMovimiento);
+    localStorage.setItem(STORAGE_KEYS.MOVIMIENTOS_CAJA, JSON.stringify(manuales));
+    this.notify();
+    return { ok: true, movimiento: nuevoMovimiento };
+  }
+
+  public corregirMovimientoCaja(
+    id: string,
+    cambios: {
+      concepto?: string;
+      categoria?: CategoriaMovimientoCaja;
+      monto?: number;
+      metodo?: MetodoPago;
+      fecha?: string;
+      observaciones?: string;
+    },
+    motivo: string
+  ): { ok: boolean; error?: string } {
+    const motivoLimpio = (motivo || '').trim();
+    if (motivoLimpio.length < 3) {
+      return { ok: false, error: 'Indicá un motivo válido (mínimo 3 caracteres) para registrar la corrección.' };
+    }
+
+    if (cambios.monto !== undefined) {
+      const m = Math.round(Number(cambios.monto));
+      if (!Number.isFinite(m) || m <= 0) {
+        return { ok: false, error: 'El nuevo importe debe ser mayor a cero.' };
+      }
+    }
+
+    const ahoraIso = new Date().toISOString();
+
+    // Caso 1: Movimiento proyectado desde un Pago de Pedido
+    if (id.startsWith('CAJ-PAG-')) {
+      const pagoId = id.replace('CAJ-PAG-', '');
+      const pedidos = this.getPedidos();
+      for (const pedido of pedidos) {
+        const pagoIdx = pedido.pagos.findIndex((p) => p.id === pagoId);
+        if (pagoIdx === -1) continue;
+
+        const pagoActual = pedido.pagos[pagoIdx];
+        if (pagoActual.anulado) {
+          return { ok: false, error: 'No se puede editar un cobro que ya fue anulado.' };
+        }
+
+        const nuevoMonto = cambios.monto !== undefined ? Math.round(cambios.monto) : pagoActual.monto;
+        const nuevoMetodo = cambios.metodo ?? pagoActual.metodo;
+        const nuevaNota = cambios.observaciones !== undefined ? cambios.observaciones.trim() : pagoActual.nota;
+        const nuevaFecha = cambios.fecha || pagoActual.fecha;
+
+        const otrosPagosTotal = pedido.pagos
+          .filter((p, idx) => idx !== pagoIdx && !p.anulado)
+          .reduce((acc, p) => acc + p.monto, 0);
+
+        if (otrosPagosTotal + nuevoMonto > pedido.total) {
+          return {
+            ok: false,
+            error: `El monto ($${nuevoMonto}) haría que los cobros superen el total del pedido ($${pedido.total}).`,
+          };
+        }
+
+        const cambioRegistro: MovimientoCajaCambio = {
+          fecha: ahoraIso,
+          motivo: motivoLimpio,
+          detalle: `Corrección de cobro en pedido ${pedido.codigoVisible}`,
+          montoAnterior: pagoActual.monto,
+          montoNuevo: nuevoMonto,
+          metodoAnterior: pagoActual.metodo,
+          metodoNuevo: nuevoMetodo,
+        };
+
+        pedido.pagos[pagoIdx] = {
+          ...pagoActual,
+          monto: nuevoMonto,
+          metodo: nuevoMetodo,
+          nota: nuevaNota || undefined,
+          fecha: nuevaFecha,
+        };
+
+        const totalPagado = pedido.pagos
+          .filter((p) => !p.anulado)
+          .reduce((acc, p) => acc + p.monto, 0);
+        pedido.saldoPendiente = Math.max(0, Math.round(pedido.total - totalPagado));
+        pedido.estadoPago =
+          pedido.saldoPendiente === 0 ? 'pagado' : totalPagado > 0 ? 'parcial' : 'pendiente';
+
+        this.saveHistorialPago(pagoId, cambioRegistro);
+        this.savePedido(pedido);
+        return { ok: true };
+      }
+      return { ok: false, error: 'No se encontró el cobro asociado al pedido.' };
+    }
+
+    // Caso 2: Movimiento manual de Caja
+    const manuales = this.getMovimientosCajaManuales();
+    const idx = manuales.findIndex((m) => m.id === id);
+    if (idx === -1) {
+      return { ok: false, error: 'Movimiento de caja no encontrado.' };
+    }
+
+    const actual = manuales[idx];
+    if (actual.anulado) {
+      return { ok: false, error: 'No se puede corregir un movimiento ya anulado.' };
+    }
+
+    const nuevoConcepto = cambios.concepto !== undefined ? cambios.concepto.trim() : actual.concepto;
+    if (nuevoConcepto.length < 2) {
+      return { ok: false, error: 'El concepto no puede quedar vacío.' };
+    }
+
+    const nuevoMonto = cambios.monto !== undefined ? Math.round(cambios.monto) : actual.monto;
+    const nuevaCategoria = cambios.categoria ?? actual.categoria;
+    const nuevoMetodo = cambios.metodo ?? actual.metodo;
+    const nuevaFecha = cambios.fecha || actual.fecha;
+    const nuevasObs =
+      cambios.observaciones !== undefined ? cambios.observaciones.trim() || undefined : actual.observaciones;
+
+    const detalles: string[] = [];
+    if (nuevoMonto !== actual.monto) detalles.push(`Importe: $${actual.monto} → $${nuevoMonto}`);
+    if (nuevoMetodo !== actual.metodo) detalles.push(`Medio: ${actual.metodo} → ${nuevoMetodo}`);
+    if (nuevoConcepto !== actual.concepto) detalles.push(`Concepto: "${actual.concepto}" → "${nuevoConcepto}"`);
+    if (nuevaCategoria !== actual.categoria) {
+      detalles.push(`Categoría: ${CATEGORIA_CAJA_LABELS[actual.categoria]} → ${CATEGORIA_CAJA_LABELS[nuevaCategoria]}`);
+    }
+
+    const registroCambio: MovimientoCajaCambio = {
+      fecha: ahoraIso,
+      motivo: motivoLimpio,
+      detalle: detalles.length > 0 ? detalles.join(' · ') : 'Actualización de fecha u observaciones',
+      montoAnterior: actual.monto,
+      montoNuevo: nuevoMonto,
+      conceptoAnterior: actual.concepto,
+      conceptoNuevo: nuevoConcepto,
+      metodoAnterior: actual.metodo,
+      metodoNuevo: nuevoMetodo,
+      categoriaAnterior: actual.categoria,
+      categoriaNuevo: nuevaCategoria,
+    };
+
+    manuales[idx] = {
+      ...actual,
+      concepto: nuevoConcepto,
+      categoria: nuevaCategoria,
+      monto: nuevoMonto,
+      metodo: nuevoMetodo,
+      fecha: nuevaFecha,
+      observaciones: nuevasObs,
+      actualizadoEn: ahoraIso,
+      historialCambios: [...(actual.historialCambios || []), registroCambio],
+    };
+
+    localStorage.setItem(STORAGE_KEYS.MOVIMIENTOS_CAJA, JSON.stringify(manuales));
+    this.notify();
+    return { ok: true };
+  }
+
+  public anularMovimientoCaja(id: string, motivo: string): { ok: boolean; error?: string } {
+    const motivoLimpio = (motivo || '').trim();
+    if (motivoLimpio.length < 3) {
+      return { ok: false, error: 'Debe ingresar un motivo de anulación (mínimo 3 caracteres).' };
+    }
+
+    const ahoraIso = new Date().toISOString();
+
+    if (id.startsWith('CAJ-PAG-')) {
+      const pagoId = id.replace('CAJ-PAG-', '');
+      const pedidos = this.getPedidos();
+      for (const pedido of pedidos) {
+        const pagoIdx = pedido.pagos.findIndex((p) => p.id === pagoId);
+        if (pagoIdx === -1) continue;
+
+        const pagoActual = pedido.pagos[pagoIdx];
+        if (pagoActual.anulado) {
+          return { ok: false, error: 'Este cobro ya fue anulado anteriormente.' };
+        }
+
+        pedido.pagos[pagoIdx] = {
+          ...pagoActual,
+          anulado: true,
+          motivoAnulacion: motivoLimpio,
+          anuladoAt: ahoraIso,
+        };
+
+        const totalPagado = pedido.pagos
+          .filter((p) => !p.anulado)
+          .reduce((acc, p) => acc + p.monto, 0);
+        pedido.saldoPendiente = Math.max(0, Math.round(pedido.total - totalPagado));
+        pedido.estadoPago =
+          pedido.saldoPendiente === 0 && pedido.total > 0
+            ? 'pagado'
+            : totalPagado > 0
+            ? 'parcial'
+            : 'pendiente';
+
+        this.saveHistorialPago(pagoId, {
+          fecha: ahoraIso,
+          motivo: motivoLimpio,
+          detalle: `Anulación de cobro $${pagoActual.monto} (pedido ${pedido.codigoVisible})`,
+          montoAnterior: pagoActual.monto,
+          montoNuevo: 0,
+        });
+
+        this.savePedido(pedido);
+        return { ok: true };
+      }
+      return { ok: false, error: 'Pago no encontrado.' };
+    }
+
+    const manuales = this.getMovimientosCajaManuales();
+    const idx = manuales.findIndex((m) => m.id === id);
+    if (idx === -1) return { ok: false, error: 'Movimiento no encontrado.' };
+    if (manuales[idx].anulado) return { ok: false, error: 'Este movimiento ya está anulado.' };
+
+    const actual = manuales[idx];
+    manuales[idx] = {
+      ...actual,
+      anulado: true,
+      motivoAnulacion: motivoLimpio,
+      anuladoAt: ahoraIso,
+      actualizadoEn: ahoraIso,
+      historialCambios: [
+        ...(actual.historialCambios || []),
+        {
+          fecha: ahoraIso,
+          motivo: motivoLimpio,
+          detalle: `Anulación de movimiento ($${actual.monto})`,
+          montoAnterior: actual.monto,
+          montoNuevo: 0,
+        },
+      ],
+    };
+
+    localStorage.setItem(STORAGE_KEYS.MOVIMIENTOS_CAJA, JSON.stringify(manuales));
+    this.notify();
+    return { ok: true };
+  }
+
+  // --- SESIONES DE CAJA (APERTURA / CIERRE / ARQUEO) ---
+
+  public getSesionesCaja(): SesionCaja[] {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.SESIONES_CAJA);
+      const list: SesionCaja[] = raw ? JSON.parse(raw) : [];
+      return Array.isArray(list)
+        ? list.sort((a, b) => new Date(b.horaApertura).getTime() - new Date(a.horaApertura).getTime())
+        : [];
+    } catch {
+      return [];
+    }
+  }
+
+  public getSesionCajaActiva(): SesionCaja | null {
+    return this.getSesionesCaja().find((s) => !s.cerrada) || null;
+  }
+
+  public getUltimaSesionCerrada(): SesionCaja | null {
+    return this.getSesionesCaja().find((s) => s.cerrada) || null;
+  }
+
+  public abrirCaja(
+    saldoInicialEfectivo: number,
+    saldoInicialDigital = 0,
+    notasApertura = ''
+  ): { ok: boolean; sesion?: SesionCaja; error?: string } {
+    if (this.getSesionCajaActiva()) {
+      return { ok: false, error: 'Ya existe una caja abierta actualmente. Cerrala antes de abrir una nueva.' };
+    }
+
+    const efLimpio = Math.round(Number(saldoInicialEfectivo));
+    const digLimpio = Math.round(Number(saldoInicialDigital || 0));
+    if (!Number.isFinite(efLimpio) || efLimpio < 0) {
+      return { ok: false, error: 'El saldo inicial en efectivo no puede ser negativo.' };
+    }
+    if (!Number.isFinite(digLimpio) || digLimpio < 0) {
+      return { ok: false, error: 'El saldo inicial digital no puede ser negativo.' };
+    }
+
+    const ahora = new Date();
+    const nuevaSesion: SesionCaja = {
+      id: `SES-${getLocalDateKey(ahora)}-${ahora.getTime().toString(36).slice(-4).toUpperCase()}`,
+      fecha: getLocalDateKey(ahora),
+      horaApertura: ahora.toISOString(),
+      saldoInicialEfectivo: efLimpio,
+      saldoInicialDigital: digLimpio,
+      notasApertura: notasApertura.trim() || undefined,
+      cerrada: false,
+    };
+
+    const sesiones = this.getSesionesCaja();
+    sesiones.unshift(nuevaSesion);
+    localStorage.setItem(STORAGE_KEYS.SESIONES_CAJA, JSON.stringify(sesiones));
+    this.notify();
+    return { ok: true, sesion: nuevaSesion };
+  }
+
+  public actualizarSaldoInicialCaja(
+    sesionId: string,
+    nuevoSaldoEfectivo: number,
+    motivo: string
+  ): { ok: boolean; error?: string } {
+    const motivoLimpio = (motivo || '').trim();
+    if (motivoLimpio.length < 3) {
+      return { ok: false, error: 'Ingresá un motivo válido para ajustar el saldo inicial.' };
+    }
+    const efLimpio = Math.round(Number(nuevoSaldoEfectivo));
+    if (!Number.isFinite(efLimpio) || efLimpio < 0) {
+      return { ok: false, error: 'El saldo inicial no puede ser negativo.' };
+    }
+
+    const sesiones = this.getSesionesCaja();
+    const idx = sesiones.findIndex((s) => s.id === sesionId);
+    if (idx === -1) return { ok: false, error: 'Sesión de caja no encontrada.' };
+    if (sesiones[idx].cerrada) return { ok: false, error: 'No se puede modificar una caja ya cerrada.' };
+
+    const anterior = sesiones[idx].saldoInicialEfectivo;
+    sesiones[idx] = {
+      ...sesiones[idx],
+      saldoInicialEfectivo: efLimpio,
+      historialAjustes: [
+        ...(sesiones[idx].historialAjustes || []),
+        {
+          fecha: new Date().toISOString(),
+          saldoAnterior: anterior,
+          saldoNuevo: efLimpio,
+          motivo: motivoLimpio,
+        },
+      ],
+    };
+
+    localStorage.setItem(STORAGE_KEYS.SESIONES_CAJA, JSON.stringify(sesiones));
+    this.notify();
+    return { ok: true };
+  }
+
+  private getMovimientosDeSesion(sesion: SesionCaja): MovimientoCaja[] {
+    const sesiones = this.getSesionesCaja();
+    const hayCierrePrevioMismoDia = sesiones.some(
+      (s) =>
+        s.id !== sesion.id &&
+        s.cerrada &&
+        s.fecha === sesion.fecha &&
+        s.horaCierre &&
+        new Date(s.horaCierre).getTime() <= new Date(sesion.horaApertura).getTime()
+    );
+
+    const todos = this.getMovimientosCajaUnificados(false);
+    const aperturaMs = new Date(sesion.horaApertura).getTime();
+
+    return todos.filter((m) => {
+      if (hayCierrePrevioMismoDia) {
+        return new Date(m.fecha).getTime() >= aperturaMs;
+      }
+      // Si es la primera apertura del día, incluir movimientos reales desde el inicio de ese día
+      return getLocalDateKey(m.fecha) >= sesion.fecha;
+    });
+  }
+
+  public cerrarCaja(
+    sesionId: string,
+    arqueoRealEfectivo: number,
+    observacionesCierre = ''
+  ): { ok: boolean; sesion?: SesionCaja; error?: string } {
+    const arqueoLimpio = Math.round(Number(arqueoRealEfectivo));
+    if (!Number.isFinite(arqueoLimpio) || arqueoLimpio < 0) {
+      return { ok: false, error: 'El efectivo contado en el arqueo no puede ser negativo.' };
+    }
+
+    const sesiones = this.getSesionesCaja();
+    const idx = sesiones.findIndex((s) => s.id === sesionId);
+    if (idx === -1) return { ok: false, error: 'Sesión de caja no encontrada.' };
+    if (sesiones[idx].cerrada) return { ok: false, error: 'Esta sesión de caja ya se encuentra cerrada.' };
+
+    const sesion = sesiones[idx];
+    const movsSesion = this.getMovimientosDeSesion(sesion);
+
+    let ingresosEfectivo = 0;
+    let egresosEfectivo = 0;
+    let totalIngresos = 0;
+    let totalEgresos = 0;
+
+    for (const m of movsSesion) {
+      if (m.tipo === 'ingreso') {
+        totalIngresos += m.monto;
+        if (m.metodo === 'efectivo') ingresosEfectivo += m.monto;
+      } else {
+        totalEgresos += m.monto;
+        if (m.metodo === 'efectivo') egresosEfectivo += m.monto;
+      }
+    }
+
+    const efectivoEsperado = sesion.saldoInicialEfectivo + ingresosEfectivo - egresosEfectivo;
+    const diferenciaArqueo = arqueoLimpio - efectivoEsperado;
+    const balanceNeto = totalIngresos - totalEgresos;
+    const saldoTotalFinal =
+      sesion.saldoInicialEfectivo + (sesion.saldoInicialDigital || 0) + balanceNeto;
+
+    const sesionCerrada: SesionCaja = {
+      ...sesion,
+      cerrada: true,
+      horaCierre: new Date().toISOString(),
+      arqueoRealEfectivo: arqueoLimpio,
+      diferenciaArqueo,
+      observacionesCierre: observacionesCierre.trim() || undefined,
+      resumenCierre: {
+        ingresosEfectivo,
+        egresosEfectivo,
+        efectivoEsperado,
+        totalIngresos,
+        totalEgresos,
+        balanceNeto,
+        saldoTotalFinal,
+      },
+    };
+
+    sesiones[idx] = sesionCerrada;
+    localStorage.setItem(STORAGE_KEYS.SESIONES_CAJA, JSON.stringify(sesiones));
+    this.notify();
+    return { ok: true, sesion: sesionCerrada };
+  }
+
+  /**
+   * Calcula métricas completas de Caja:
+   * - Balance económico del período filtrado (Ingresos, Egresos, Balance Neto).
+   * - Saldo real disponible separado estrictamente en Efectivo físico vs Medios Digitales.
+   * - Saldos pendientes de clientes reportados aparte (nunca sumados como ingresos).
+   */
+  public getResumenCaja(filtros?: {
+    fechaDesde?: string; // YYYY-MM-DD
+    fechaHasta?: string; // YYYY-MM-DD
+    tipo?: 'todos' | TipoMovimientoCaja;
+    categoria?: string;
+    metodo?: string;
+    busqueda?: string;
+  }): { movimientosFiltrados: MovimientoCaja[]; resumen: ResumenCaja } {
+    const todosVigentes = this.getMovimientosCajaUnificados(false);
+    const todosConAnulados = this.getMovimientosCajaUnificados(true);
+
+    const aplicaFiltro = (m: MovimientoCaja) => {
+      const fKey = getLocalDateKey(m.fecha);
+      if (filtros?.fechaDesde && fKey < filtros.fechaDesde) return false;
+      if (filtros?.fechaHasta && fKey > filtros.fechaHasta) return false;
+      if (filtros?.tipo && filtros.tipo !== 'todos' && m.tipo !== filtros.tipo) return false;
+      if (filtros?.categoria && filtros.categoria !== 'todas' && m.categoria !== filtros.categoria) {
+        return false;
+      }
+      if (filtros?.metodo && filtros.metodo !== 'todos' && m.metodo !== filtros.metodo) {
+        return false;
+      }
+      if (filtros?.busqueda && filtros.busqueda.trim() !== '') {
+        const q = filtros.busqueda.trim().toLowerCase();
+        const texto = `${m.concepto} ${m.clienteNombre || ''} ${m.codigoPedido || ''} ${m.observaciones || ''} ${CATEGORIA_CAJA_LABELS[m.categoria] || ''}`.toLowerCase();
+        if (!texto.includes(q)) return false;
+      }
+      return true;
+    };
+
+    const movimientosFiltrados = todosConAnulados.filter(aplicaFiltro);
+    const vigentesPeriodo = todosVigentes.filter(aplicaFiltro);
+
+    let ingresosPeriodo = 0;
+    let egresosPeriodo = 0;
+    let cantidadIngresos = 0;
+    let cantidadEgresos = 0;
+
+    const desgloseMetodos: Record<MetodoPago, { ingresos: number; egresos: number; neto: number }> = {
+      efectivo: { ingresos: 0, egresos: 0, neto: 0 },
+      transferencia: { ingresos: 0, egresos: 0, neto: 0 },
+      debito: { ingresos: 0, egresos: 0, neto: 0 },
+      credito: { ingresos: 0, egresos: 0, neto: 0 },
+      otro: { ingresos: 0, egresos: 0, neto: 0 },
+    };
+    const desgloseEgresosCategoria: Record<string, number> = {};
+
+    for (const m of vigentesPeriodo) {
+      const met = desgloseMetodos[m.metodo] ? m.metodo : 'otro';
+      if (m.tipo === 'ingreso') {
+        ingresosPeriodo += m.monto;
+        cantidadIngresos++;
+        desgloseMetodos[met].ingresos += m.monto;
+        desgloseMetodos[met].neto += m.monto;
+      } else {
+        egresosPeriodo += m.monto;
+        cantidadEgresos++;
+        desgloseMetodos[met].egresos += m.monto;
+        desgloseMetodos[met].neto -= m.monto;
+        desgloseEgresosCategoria[m.categoria] =
+          (desgloseEgresosCategoria[m.categoria] || 0) + m.monto;
+      }
+    }
+
+    // Saldo real de Caja (Efectivo físico separado de transferencias/tarjetas)
+    const sesionActiva = this.getSesionCajaActiva();
+    const ultimaCerrada = this.getUltimaSesionCerrada();
+
+    let saldoInicialEfectivo = 0;
+    let saldoInicialDigital = 0;
+    let movimientosCajaReal: MovimientoCaja[] = todosVigentes;
+
+    if (sesionActiva) {
+      saldoInicialEfectivo = sesionActiva.saldoInicialEfectivo;
+      saldoInicialDigital = sesionActiva.saldoInicialDigital || 0;
+      movimientosCajaReal = this.getMovimientosDeSesion(sesionActiva);
+    } else if (ultimaCerrada && ultimaCerrada.horaCierre) {
+      saldoInicialEfectivo = ultimaCerrada.arqueoRealEfectivo ?? 0;
+      saldoInicialDigital = 0;
+      const cierreMs = new Date(ultimaCerrada.horaCierre).getTime();
+      movimientosCajaReal = todosVigentes.filter((m) => new Date(m.fecha).getTime() > cierreMs);
+    }
+
+    let efectivoNeto = 0;
+    let digitalNeto = 0;
+    for (const m of movimientosCajaReal) {
+      const signo = m.tipo === 'ingreso' ? 1 : -1;
+      if (m.metodo === 'efectivo') {
+        efectivoNeto += signo * m.monto;
+      } else {
+        digitalNeto += signo * m.monto;
+      }
+    }
+
+    const efectivoDisponible = saldoInicialEfectivo + efectivoNeto;
+    const saldoDigitalDisponible = saldoInicialDigital + digitalNeto;
+    const saldoCajaTotal = efectivoDisponible + saldoDigitalDisponible;
+
+    // Saldos pendientes de clientes (informativo, nunca contado como ingreso)
+    const saldosPorCobrarClientes = this.getPedidos()
+      .filter((p) => p.estadoGeneral !== 'cancelado')
+      .reduce((acc, p) => acc + (p.saldoPendiente || 0), 0);
+
+    return {
+      movimientosFiltrados,
+      resumen: {
+        ingresosPeriodo,
+        egresosPeriodo,
+        balanceNetoPeriodo: ingresosPeriodo - egresosPeriodo,
+        cantidadIngresos,
+        cantidadEgresos,
+        saldoInicialEfectivo,
+        saldoInicialDigital,
+        efectivoDisponible,
+        saldoDigitalDisponible,
+        saldoCajaTotal,
+        saldosPorCobrarClientes,
+        desgloseMetodos,
+        desgloseEgresosCategoria,
+        sesionActiva,
+      },
+    };
   }
 
   // --- CONFIGURACIÓN DEL SISTEMA ---
@@ -820,6 +1341,8 @@ class StorageService {
     const clientes = this.getClientes();
     const pedidos = this.getPedidos();
     const configuracion = this.getConfiguracion();
+    const movimientosCaja = this.getMovimientosCajaManuales();
+    const sesionesCaja = this.getSesionesCaja();
 
     let totalPrendas = 0;
     let totalPagos = 0;
@@ -833,14 +1356,16 @@ class StorageService {
 
     const metadata: BackupMetadata = {
       sistema: 'Lavadero eLeGe',
-      versionApp: '1.3.0',
-      versionEsquema: 1,
+      versionApp: '1.4.0',
+      versionEsquema: 2,
       fechaGeneracion: new Date().toISOString(),
       totalClientes: clientes.length,
       totalPedidos: pedidos.length,
       totalPrendas,
       totalPagos,
       importeTotalHistorico,
+      totalMovimientosCaja: movimientosCaja.length,
+      totalSesionesCaja: sesionesCaja.length,
     };
 
     return {
@@ -848,6 +1373,8 @@ class StorageService {
       clientes,
       pedidos,
       configuracion,
+      movimientosCaja,
+      sesionesCaja,
     };
   }
 
@@ -1014,21 +1541,32 @@ class StorageService {
       ...(parsed.configuracion || {}),
     };
 
+    const movimientosCajaValidos: MovimientoCaja[] = Array.isArray(parsed.movimientosCaja)
+      ? parsed.movimientosCaja.filter((m: any) => m && typeof m.id === 'string' && typeof m.monto === 'number')
+      : [];
+    const sesionesCajaValidas: SesionCaja[] = Array.isArray(parsed.sesionesCaja)
+      ? parsed.sesionesCaja.filter((s: any) => s && typeof s.id === 'string')
+      : [];
+
     const packageSanitizado: BackupPackage = {
       metadata: {
         sistema: parsed.metadata?.sistema || 'Lavadero eLeGe',
-        versionApp: parsed.metadata?.versionApp || '1.3.0',
-        versionEsquema: parsed.metadata?.versionEsquema || 1,
+        versionApp: parsed.metadata?.versionApp || '1.4.0',
+        versionEsquema: parsed.metadata?.versionEsquema || 2,
         fechaGeneracion: parsed.metadata?.fechaGeneracion || new Date().toISOString(),
         totalClientes: clientesValidados.length,
         totalPedidos: pedidosValidados.length,
         totalPrendas,
         totalPagos,
         importeTotalHistorico: importeTotal,
+        totalMovimientosCaja: movimientosCajaValidos.length,
+        totalSesionesCaja: sesionesCajaValidas.length,
       },
       clientes: clientesValidados,
       pedidos: pedidosValidados,
       configuracion: configuracionValida,
+      movimientosCaja: movimientosCajaValidos,
+      sesionesCaja: sesionesCajaValidas,
     };
 
     return {
@@ -1043,6 +1581,7 @@ class StorageService {
         totalPagos,
         importeTotal,
         versionEsquema: packageSanitizado.metadata.versionEsquema,
+        totalMovimientosCaja: movimientosCajaValidos.length,
       },
       backupPackage: packageSanitizado,
     };
@@ -1098,6 +1637,12 @@ class StorageService {
       localStorage.setItem(STORAGE_KEYS.CLIENTES, JSON.stringify(sanitized.clientes));
       localStorage.setItem(STORAGE_KEYS.PEDIDOS, JSON.stringify(sanitized.pedidos));
       localStorage.setItem(STORAGE_KEYS.CONFIGURACION, JSON.stringify(sanitized.configuracion));
+      if (sanitized.movimientosCaja) {
+        localStorage.setItem(STORAGE_KEYS.MOVIMIENTOS_CAJA, JSON.stringify(sanitized.movimientosCaja));
+      }
+      if (sanitized.sesionesCaja) {
+        localStorage.setItem(STORAGE_KEYS.SESIONES_CAJA, JSON.stringify(sanitized.sesionesCaja));
+      }
       localStorage.setItem(STORAGE_KEYS.INITIALIZED, 'true');
 
       this.notify();
@@ -1121,6 +1666,9 @@ class StorageService {
   public resetearDatos(): void {
     localStorage.removeItem(STORAGE_KEYS.CLIENTES);
     localStorage.removeItem(STORAGE_KEYS.PEDIDOS);
+    localStorage.removeItem(STORAGE_KEYS.MOVIMIENTOS_CAJA);
+    localStorage.removeItem(STORAGE_KEYS.SESIONES_CAJA);
+    localStorage.removeItem(STORAGE_KEYS.CAJA_PAGOS_HISTORIAL);
     localStorage.removeItem(STORAGE_KEYS.INITIALIZED);
     this.initIfEmpty();
     this.notify();

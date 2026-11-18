@@ -135,7 +135,7 @@ export const ClientDetailModal: React.FC<ClientDetailModalProps> = ({
               <button
                 type="button"
                 onClick={handleWhatsAppDirecto}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 hover:bg-emerald-200 rounded-xl transition-colors cursor-pointer shadow-2xs"
+                className="min-h-[38px] inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 hover:bg-emerald-200 rounded-xl transition-colors cursor-pointer shadow-2xs"
               >
                 <MessageCircle className="w-3.5 h-3.5" />
                 <span>Contactar WhatsApp</span>
@@ -147,7 +147,7 @@ export const ClientDetailModal: React.FC<ClientDetailModalProps> = ({
                   onClose();
                   onEditClient(cliente);
                 }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:text-neutral-950 bg-white hover:bg-neutral-100 border border-neutral-300 rounded-xl transition-colors cursor-pointer shadow-2xs"
+                className="min-h-[38px] inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:text-neutral-950 bg-white hover:bg-neutral-100 border border-neutral-300 rounded-xl transition-colors cursor-pointer shadow-2xs"
               >
                 <Edit2 className="w-3.5 h-3.5" />
                 <span>Editar datos</span>
@@ -156,7 +156,7 @@ export const ClientDetailModal: React.FC<ClientDetailModalProps> = ({
               <button
                 type="button"
                 onClick={() => setShowPrintCard(!showPrintCard)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:text-neutral-950 bg-white hover:bg-neutral-100 border border-neutral-300 rounded-xl transition-colors cursor-pointer shadow-2xs"
+                className="min-h-[38px] inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:text-neutral-950 bg-white hover:bg-neutral-100 border border-neutral-300 rounded-xl transition-colors cursor-pointer shadow-2xs"
               >
                 <Printer className="w-3.5 h-3.5" />
                 <span>{showPrintCard ? 'Ocultar Tarjeta QR' : 'Ver Tarjeta QR'}</span>
@@ -181,15 +181,15 @@ export const ClientDetailModal: React.FC<ClientDetailModalProps> = ({
         {/* Tarjeta Imprimible Desplegable para el Cliente */}
         {showPrintCard && (
           <div className="p-4 bg-amber-50/70 border border-amber-200 rounded-2xl space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="text-xs font-bold text-neutral-800 flex items-center gap-1.5">
-                <Printer className="w-4 h-4 text-neutral-700" />
-                Tarjeta / Credencial de Cliente Lavadero eLeGe
+                <Printer className="w-4 h-4 text-neutral-700 shrink-0" />
+                Tarjeta de Cliente Lavadero eLeGe
               </span>
               <button
                 type="button"
                 onClick={handlePrintClientCard}
-                className="px-3 py-1 bg-neutral-900 text-white rounded-lg text-xs font-bold hover:bg-neutral-800 transition-colors cursor-pointer"
+                className="px-3 py-1.5 bg-neutral-900 text-white rounded-lg text-xs font-bold hover:bg-neutral-800 transition-colors cursor-pointer"
               >
                 Imprimir Tarjeta
               </button>
@@ -216,24 +216,24 @@ export const ClientDetailModal: React.FC<ClientDetailModalProps> = ({
         {/* Métricas y Estadísticas Calculadas en Tiempo Real */}
         {metricas && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-            <div className="p-3.5 rounded-xl bg-white border border-neutral-200 shadow-2xs">
+            <div className="p-3 sm:p-3.5 rounded-xl bg-white border border-neutral-200 shadow-2xs min-w-0">
               <span className="text-[11px] font-bold text-neutral-500 block">Total Pedidos</span>
-              <span className="text-lg font-bold text-neutral-900 font-mono tabular-nums">
+              <span className="text-base sm:text-lg font-bold text-neutral-900 font-mono tabular-nums whitespace-nowrap">
                 {metricas.totalPedidos}
               </span>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-white border border-neutral-200 shadow-2xs">
+            <div className="p-3 sm:p-3.5 rounded-xl bg-white border border-neutral-200 shadow-2xs min-w-0">
               <span className="text-[11px] font-bold text-neutral-500 block">Total Invertido</span>
-              <span className="text-lg font-bold text-neutral-900 font-mono tabular-nums">
+              <span className="text-base sm:text-lg font-bold text-neutral-900 font-mono tabular-nums whitespace-nowrap">
                 {formatMoneda(metricas.totalGastado)}
               </span>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-white border border-neutral-200 shadow-2xs">
+            <div className="p-3 sm:p-3.5 rounded-xl bg-white border border-neutral-200 shadow-2xs min-w-0">
               <span className="text-[11px] font-bold text-neutral-500 block">Saldo Adeudado</span>
               <span
-                className={`text-lg font-bold font-mono tabular-nums ${
+                className={`text-base sm:text-lg font-bold font-mono tabular-nums whitespace-nowrap ${
                   metricas.saldoDeuda > 0 ? 'text-amber-700' : 'text-emerald-700'
                 }`}
               >
@@ -241,10 +241,10 @@ export const ClientDetailModal: React.FC<ClientDetailModalProps> = ({
               </span>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-white border border-neutral-200 shadow-2xs">
+            <div className="p-3 sm:p-3.5 rounded-xl bg-white border border-neutral-200 shadow-2xs min-w-0">
               <span className="text-[11px] font-bold text-neutral-500 block">Prendas en Lavadero</span>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="text-lg font-bold text-neutral-900 font-mono tabular-nums">
+              <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                <span className="text-base sm:text-lg font-bold text-neutral-900 font-mono tabular-nums">
                   {metricas.prendasEnLavadero}
                 </span>
                 {metricas.prendasActivasListas > 0 && (
@@ -259,10 +259,10 @@ export const ClientDetailModal: React.FC<ClientDetailModalProps> = ({
 
         {/* Historial Completo de Pedidos */}
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-800 flex items-center gap-1.5">
-              <Receipt className="w-4 h-4 text-neutral-600" />
-              Historial de Pedidos y Prendas ({pedidos.length})
+              <Receipt className="w-4 h-4 text-neutral-600 shrink-0" />
+              <span>Historial de Pedidos ({pedidos.length})</span>
             </h4>
 
             <button
@@ -271,7 +271,7 @@ export const ClientDetailModal: React.FC<ClientDetailModalProps> = ({
                 onClose();
                 onNewOrderForClient(cliente);
               }}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-white bg-neutral-900 hover:bg-neutral-800 rounded-xl transition-all cursor-pointer shadow-xs active:scale-98"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-white bg-neutral-900 hover:bg-neutral-800 rounded-xl transition-colors cursor-pointer shadow-xs"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Nuevo Pedido</span>
@@ -290,21 +290,21 @@ export const ClientDetailModal: React.FC<ClientDetailModalProps> = ({
                 return (
                   <div
                     key={ped.id}
-                    className="p-3.5 rounded-xl bg-white border border-neutral-200 shadow-2xs transition-all space-y-2.5"
+                    className="p-3 sm:p-3.5 rounded-xl bg-white border border-neutral-200 shadow-2xs transition-colors space-y-2.5"
                   >
                     {/* Fila principal del pedido */}
                     <div
-                      className="flex items-center justify-between gap-3 cursor-pointer group"
+                      className="flex items-start sm:items-center justify-between gap-2.5 cursor-pointer group"
                       onClick={() => toggleOrderExpand(ped.id)}
                     >
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-black font-mono text-neutral-900 group-hover:text-amber-700 transition-colors">
+                      <div className="space-y-1 min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                          <span className="text-xs sm:text-sm font-black font-mono text-neutral-900 group-hover:text-amber-700 transition-colors">
                             {ped.codigoVisible}
                           </span>
                           <StatusBadge tipo="pedido" estado={ped.estadoGeneral} size="sm" />
                           <span className="text-[11px] text-neutral-500 flex items-center gap-1">
-                            <Calendar className="w-3 h-3 text-neutral-400" />
+                            <Calendar className="w-3 h-3 text-neutral-400 shrink-0" />
                             {formatFechaCorta(ped.fechaRecepcion)}
                           </span>
                         </div>
@@ -313,9 +313,9 @@ export const ClientDetailModal: React.FC<ClientDetailModalProps> = ({
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                         <div className="text-right">
-                          <div className="text-xs font-mono font-bold text-neutral-900">
+                          <div className="text-xs sm:text-sm font-mono font-bold text-neutral-900">
                             {formatMoneda(ped.total)}
                           </div>
                           {ped.saldoPendiente > 0 ? (
@@ -343,24 +343,24 @@ export const ClientDetailModal: React.FC<ClientDetailModalProps> = ({
                           <span className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider block">
                             Prendas del pedido:
                           </span>
-                          <div className="divide-y divide-neutral-100 rounded-lg bg-neutral-50 p-2 border border-neutral-200">
+                          <div className="divide-y divide-neutral-100 rounded-lg bg-neutral-50 p-2.5 border border-neutral-200">
                             {ped.prendas.map((prn) => {
                               const infoServicio = SERVICIOS_INFO[prn.servicio];
                               return (
-                                <div key={prn.id} className="py-1.5 first:pt-0 last:pb-0 flex items-center justify-between text-xs">
-                                  <div className="space-y-0.5">
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="font-bold text-neutral-900">{prn.tipo}</span>
-                                      <span className="text-[10px] text-neutral-500 bg-white px-1.5 py-0.2 rounded border border-neutral-200">
+                                <div key={prn.id} className="py-2 first:pt-0 last:pb-0 flex flex-wrap items-center justify-between gap-2 text-xs">
+                                  <div className="space-y-0.5 min-w-0 flex-1">
+                                    <div className="flex flex-wrap items-center gap-1.5">
+                                      <span className="font-bold text-neutral-900 break-words">{prn.tipo}</span>
+                                      <span className="text-[11px] text-neutral-600 bg-white px-1.5 py-0.5 rounded border border-neutral-200">
                                         {infoServicio?.label || prn.servicio}
                                       </span>
                                     </div>
                                     {prn.descripcion && (
-                                      <p className="text-[11px] text-neutral-600">{prn.descripcion}</p>
+                                      <p className="text-[11px] text-neutral-600 break-words">{prn.descripcion}</p>
                                     )}
                                   </div>
 
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-2 shrink-0">
                                     <StatusBadge tipo="prenda" estado={prn.estado} size="sm" />
                                     <span className="font-mono font-bold text-neutral-900 text-xs">
                                       {formatMoneda(prn.precio)}
@@ -378,14 +378,14 @@ export const ClientDetailModal: React.FC<ClientDetailModalProps> = ({
                             <span className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider block">
                               Historial de Pagos / Señas:
                             </span>
-                            <div className="space-y-1 bg-white p-2 rounded-lg border border-neutral-200 text-xs">
+                            <div className="space-y-1.5 bg-white p-2.5 rounded-lg border border-neutral-200 text-xs">
                               {ped.pagos.map((pago) => (
-                                <div key={pago.id} className="flex items-center justify-between text-[11px]">
+                                <div key={pago.id} className="flex flex-wrap items-center justify-between gap-1 text-[11px]">
                                   <span className="text-neutral-600">
                                     {formatFechaHora(pago.fecha)} · {METODO_PAGO_LABELS[pago.metodo] || pago.metodo}{' '}
                                     {pago.esSenia && <strong className="text-neutral-900">(Seña)</strong>}
                                   </span>
-                                  <span className="font-mono font-bold text-emerald-700">
+                                  <span className="font-mono font-bold text-emerald-700 shrink-0">
                                     {formatMoneda(pago.monto)}
                                   </span>
                                 </div>

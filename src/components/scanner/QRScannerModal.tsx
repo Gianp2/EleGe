@@ -168,7 +168,7 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
         {/* Modo Cámara */}
         {activeMode === 'camera' && (
           <div className="space-y-3">
-            <div className="relative overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-100 flex flex-col items-center justify-center min-h-[280px]">
+            <div className="relative overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-100 flex flex-col items-center justify-center min-h-[240px] sm:min-h-[280px]">
               <div id={scannerContainerId} className="w-full max-w-[340px] overflow-hidden rounded-xl" />
               
               {cameraError && (
@@ -178,7 +178,7 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setActiveMode('usb')}
-                    className="text-xs text-neutral-900 hover:underline font-bold inline-block"
+                    className="text-xs text-neutral-900 hover:underline font-bold inline-block cursor-pointer"
                   >
                     Usar ingreso manual o lector USB
                   </button>
@@ -187,7 +187,7 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
             </div>
 
             {cameras.length > 1 && (
-              <div className="flex items-center justify-between text-xs text-neutral-600 px-1">
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-neutral-600 px-1">
                 <span>Cámara seleccionada:</span>
                 <select
                   value={selectedCameraId}
@@ -195,7 +195,7 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
                     setSelectedCameraId(e.target.value);
                     startCamera(e.target.value);
                   }}
-                  className="bg-white border border-neutral-300 rounded-xl px-2.5 py-1 text-xs text-neutral-900 font-medium shadow-2xs"
+                  className="w-full sm:w-auto bg-white border border-neutral-300 rounded-xl px-2.5 py-1.5 text-xs text-neutral-900 font-medium shadow-2xs"
                 >
                   {cameras.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -228,13 +228,13 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
                   autoFocus
                   value={manualInput}
                   onChange={(e) => setManualInput(e.target.value)}
-                  placeholder="Ej: PRN-2401-1, PED-2401 o ELEG:GARMENT:..."
-                  className="flex-1 bg-white border border-neutral-300 focus:border-neutral-500 rounded-xl px-3 py-2 text-sm text-neutral-900 font-mono placeholder:text-neutral-400 outline-none shadow-2xs"
+                  placeholder="Ej: PRN-2401-1 o PED-2401"
+                  className="flex-1 min-w-0 bg-white border border-neutral-300 focus:border-neutral-500 rounded-xl px-3 py-2 text-sm text-neutral-900 font-mono placeholder:text-neutral-400 outline-none shadow-2xs"
                 />
                 <button
                   type="submit"
                   disabled={!manualInput.trim()}
-                  className="px-4 py-2 bg-neutral-900 text-white font-bold text-xs rounded-xl hover:bg-neutral-800 transition-colors disabled:opacity-50 cursor-pointer shadow-xs"
+                  className="px-4 py-2 bg-neutral-900 text-white font-bold text-xs rounded-xl hover:bg-neutral-800 transition-colors disabled:opacity-50 cursor-pointer shadow-xs shrink-0"
                 >
                   Buscar
                 </button>
@@ -243,36 +243,38 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
           </form>
         )}
 
-        {/* Acceso Rápido para Pruebas Demo sin Cámara */}
-        <div className="pt-3 border-t border-neutral-200 space-y-2">
-          <div className="flex items-center justify-between text-[11px] text-neutral-600">
-            <span className="flex items-center gap-1 text-neutral-800 font-bold">
-              <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-              Probar escaneo inmediato (datos demo):
-            </span>
-          </div>
+        {/* Acceso rápido a prendas registradas */}
+        {testPrendas.length > 0 && (
+          <div className="pt-3 border-t border-neutral-200 space-y-2">
+            <div className="flex items-center justify-between text-[11px] text-neutral-600">
+              <span className="flex items-center gap-1 text-neutral-800 font-bold">
+                <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                Acceso rápido a prendas recientes:
+              </span>
+            </div>
 
-          <div className="grid grid-cols-2 gap-2 max-h-36 overflow-y-auto pr-1">
-            {testPrendas.slice(0, 4).map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => handleCodeDetected(p.qrPayload)}
-                className="text-left p-2.5 rounded-xl bg-neutral-50 hover:bg-neutral-100 border border-neutral-200 transition-colors group cursor-pointer shadow-2xs"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-mono font-bold text-neutral-900 group-hover:text-amber-700">
-                    {p.id}
-                  </span>
-                  <span className="text-[10px] text-neutral-500 capitalize">{p.estado}</span>
-                </div>
-                <div className="text-[11px] text-neutral-600 truncate mt-0.5">
-                  {p.tipo} - {p.descripcion}
-                </div>
-              </button>
-            ))}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-36 overflow-y-auto pr-1">
+              {testPrendas.slice(0, 4).map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => handleCodeDetected(p.qrPayload)}
+                  className="text-left p-2.5 rounded-xl bg-neutral-50 hover:bg-neutral-100 border border-neutral-200 transition-colors group cursor-pointer shadow-2xs"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-mono font-bold text-neutral-900 group-hover:text-amber-700">
+                      {p.id}
+                    </span>
+                    <span className="text-[10px] text-neutral-500 capitalize">{p.estado}</span>
+                  </div>
+                  <div className="text-[11px] text-neutral-600 truncate mt-0.5">
+                    {p.tipo} - {p.descripcion}
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </Modal>
   );

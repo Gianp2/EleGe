@@ -333,15 +333,164 @@ export class FirestoreRulesEvaluator {
     }
 
     if ('id' in data && (typeof data.id !== 'string' || data.id !== docId)) return false;
-    if (!['CREATE', 'UPDATE', 'DELETE', 'STATUS_CHANGE', 'PAYMENT', 'PAYMENT_CANCEL', 'ORDER_CANCEL', 'RESTORE', 'DEACTIVATE'].includes(data.accion)) {
+    if (
+      ![
+        'CREATE',
+        'UPDATE',
+        'DELETE',
+        'STATUS_CHANGE',
+        'PAYMENT',
+        'PAYMENT_CANCEL',
+        'ORDER_CANCEL',
+        'RESTORE',
+        'DEACTIVATE',
+        'CASH_MOVEMENT',
+        'CASH_CORRECTION',
+        'CASH_CANCEL',
+        'CASH_OPEN',
+        'CASH_CLOSE',
+      ].includes(data.accion)
+    ) {
       return false;
     }
     if (!['INICIADA', 'CONFIRMADA', 'FALLIDA'].includes(data.fase)) return false;
-    if (!['cliente', 'pedido', 'prenda', 'pago', 'configuracion', 'sistema'].includes(data.entidad)) return false;
+    if (
+      ![
+        'cliente',
+        'pedido',
+        'prenda',
+        'pago',
+        'movimiento_caja',
+        'sesion_caja',
+        'configuracion',
+        'sistema',
+      ].includes(data.entidad)
+    ) {
+      return false;
+    }
     if (typeof data.entidadId !== 'string' || !this.isValidId(data.entidadId)) return false;
     if (typeof data.detalles !== 'string' || data.detalles.length === 0 || data.detalles.length > 1000) return false;
     if (typeof data.usuarioUid !== 'string' || data.usuarioUid !== authUid) return false;
 
+    return true;
+  }
+
+  static isValidMovimientoCaja(data: any, docId: string, ctx: SecurityContext): boolean {
+    if (!data || typeof data !== 'object') return false;
+    const requiredKeys = ['id', 'tipo', 'categoria', 'concepto', 'monto', 'fecha', 'metodo', 'origen', 'creadoEn'];
+    for (const key of requiredKeys) {
+      if (!(key in data)) return false;
+    }
+
+    const allowedKeys = new Set([
+      'id',
+      'tipo',
+      'categoria',
+      'concepto',
+      'monto',
+      'fecha',
+      'metodo',
+      'pedidoId',
+      'codigoPedido',
+      'clienteId',
+      'clienteNombre',
+      'pagoIdRelacionado',
+      'observaciones',
+      'origen',
+      'anulado',
+      'motivoAnulacion',
+      'anuladoAt',
+      'anuladoPor',
+      'historialCambios',
+      'creadoEn',
+      'actualizadoEn',
+      'createdAt',
+      'createdBy',
+      'updatedAt',
+      'updatedBy',
+      'migradoAt',
+      'migradoPor',
+    ]);
+    for (const key of Object.keys(data)) {
+      if (!allowedKeys.has(key)) return false;
+    }
+
+    if (typeof data.id !== 'string' || data.id !== docId || !this.isValidId(data.id)) return false;
+    if (data.tipo === 'ingreso') {
+      if (!['cobro_pedido', 'senia_pedido', 'ingreso_manual', 'ajuste_positivo'].includes(data.categoria)) return false;
+    } else if (data.tipo === 'egreso') {
+      if (!['productos_limpieza', 'insumos', 'servicios', 'sueldos', 'mantenimiento', 'otros_gastos'].includes(data.categoria)) {
+        return false;
+      }
+    } else {
+      return false;
+    }
+
+    if (
+      typeof data.concepto !== 'string' ||
+      data.concepto.length < 2 ||
+      data.concepto.length > 200 ||
+      !/^.*\S.*\S.*$/.test(data.concepto)
+    ) {
+      return false;
+    }
+    if (typeof data.monto !== 'number' || data.monto <= 0) return false;
+    if (typeof data.fecha !== 'string' || data.fecha.length < 10) return false;
+    if (!['efectivo', 'transferencia', 'debito', 'credito', 'otro'].includes(data.metodo)) return false;
+    if (!['pedido_pago', 'manual'].includes(data.origen)) return false;
+    if (typeof data.creadoEn !== 'string' || data.creadoEn.length < 10) return false;
+    if (
+      'pedidoId' in data &&
+      data.pedidoId !== null &&
+      (typeof data.pedidoId !== 'string' ||
+        !this.isValidId(data.pedidoId) ||
+        (ctx.existingDocuments && !ctx.existingDocuments.has(`pedidos/${data.pedidoId}`)))
+    ) {
+      return false;
+    }
+    if ('anuladoPor' in data && data.anuladoPor !== null && data.anuladoPor !== ctx.auth?.uid) return false;
+    return true;
+  }
+
+  static isValidSesionCaja(data: any, docId: string): boolean {
+    if (!data || typeof data !== 'object') return false;
+    const requiredKeys = ['id', 'fecha', 'horaApertura', 'saldoInicialEfectivo', 'cerrada'];
+    for (const key of requiredKeys) {
+      if (!(key in data)) return false;
+    }
+    const allowedKeys = new Set([
+      'id',
+      'fecha',
+      'horaApertura',
+      'saldoInicialEfectivo',
+      'saldoInicialDigital',
+      'notasApertura',
+      'cerrada',
+      'horaCierre',
+      'arqueoRealEfectivo',
+      'diferenciaArqueo',
+      'observacionesCierre',
+      'resumenCierre',
+      'historialAjustes',
+      'createdAt',
+      'createdBy',
+      'updatedAt',
+      'updatedBy',
+      'migradoAt',
+      'migradoPor',
+    ]);
+    for (const key of Object.keys(data)) {
+      if (!allowedKeys.has(key)) return false;
+    }
+
+    if (typeof data.id !== 'string' || data.id !== docId || !this.isValidId(data.id)) return false;
+    if (typeof data.fecha !== 'string' || data.fecha.length < 10 || data.fecha.length > 20) return false;
+    if (typeof data.horaApertura !== 'string' || data.horaApertura.length < 10) return false;
+    if (typeof data.saldoInicialEfectivo !== 'number' || data.saldoInicialEfectivo < 0) return false;
+    if (typeof data.cerrada !== 'boolean') return false;
+    if ('arqueoRealEfectivo' in data && data.arqueoRealEfectivo !== null) {
+      if (typeof data.arqueoRealEfectivo !== 'number' || data.arqueoRealEfectivo < 0) return false;
+    }
     return true;
   }
 
@@ -559,6 +708,67 @@ export class FirestoreRulesEvaluator {
           return this.isValidAuditoria(payload, docId, ctx.auth?.uid) ? 'ALLOW' : 'DENY';
         }
         return 'DENY'; // allow update, delete: if false;
+      }
+
+      case 'movimientos_caja': {
+        if (!isAdmin) return 'DENY';
+        if (operacion === 'read') return 'ALLOW';
+        if (!this.isValidId(docId)) return 'DENY';
+        if (operacion === 'create') {
+          if (!this.isValidMovimientoCaja(payload, docId, ctx)) return 'DENY';
+          if (payload.anulado === true) return 'DENY';
+          return 'ALLOW';
+        }
+        if (operacion === 'update') {
+          if (!existingData || existingData.anulado === true) return 'DENY';
+          if (!this.isValidMovimientoCaja(payload, docId, ctx)) return 'DENY';
+          if (
+            payload.id !== existingData.id ||
+            payload.tipo !== existingData.tipo ||
+            payload.origen !== existingData.origen ||
+            payload.creadoEn !== existingData.creadoEn
+          ) {
+            return 'DENY';
+          }
+          if (!Array.isArray(payload.historialCambios) || payload.historialCambios.length < 1) {
+            return 'DENY';
+          }
+          if (payload.anulado === true) {
+            if (
+              typeof payload.motivoAnulacion !== 'string' ||
+              payload.motivoAnulacion.length < 3 ||
+              !/^.*\S.*\S.*\S.*$/.test(payload.motivoAnulacion) ||
+              !payload.anuladoAt ||
+              payload.anuladoPor !== ctx.auth?.uid
+            ) {
+              return 'DENY';
+            }
+          }
+          return 'ALLOW';
+        }
+        return 'DENY'; // allow delete: if false;
+      }
+
+      case 'sesiones_caja': {
+        if (!isAdmin) return 'DENY';
+        if (operacion === 'read') return 'ALLOW';
+        if (!this.isValidId(docId)) return 'DENY';
+        if (operacion === 'create') {
+          return this.isValidSesionCaja(payload, docId) ? 'ALLOW' : 'DENY';
+        }
+        if (operacion === 'update') {
+          if (!existingData || existingData.cerrada === true) return 'DENY';
+          if (!this.isValidSesionCaja(payload, docId)) return 'DENY';
+          if (
+            payload.id !== existingData.id ||
+            payload.fecha !== existingData.fecha ||
+            payload.horaApertura !== existingData.horaApertura
+          ) {
+            return 'DENY';
+          }
+          return 'ALLOW';
+        }
+        return 'DENY'; // allow delete: if false;
       }
 
       default: {
@@ -1673,6 +1883,234 @@ export const SECURITY_TEST_CASES: SecurityTestCase[] = [
     },
     resultadoEsperado: 'ALLOW',
     motivoSeguridad: 'La acción DEACTIVATE está explícitamente autorizada en la lista de acciones válidas.',
+  },
+
+  // -------------------------------------------------------------------------
+  // 12. CONTROL DE CAJA Y SESIONES DE ARQUEO (movimientos_caja y sesiones_caja)
+  // -------------------------------------------------------------------------
+  {
+    id: 'SEC-55',
+    categoria: 'VALIDATION',
+    descripcion: 'Creación válida de egreso de caja categorizado (productos_limpieza) por administradora',
+    coleccion: 'movimientos_caja',
+    documentId: 'CAJA_egreso_1',
+    operacion: 'create',
+    usuario: { autenticado: true, uid: AUTHORIZED_ADMIN_UID },
+    payload: {
+      id: 'CAJA_egreso_1',
+      tipo: 'egreso',
+      categoria: 'productos_limpieza',
+      concepto: 'Jabón líquido Skip 5L',
+      monto: 12000,
+      fecha: '2026-10-29T10:30:00.000Z',
+      metodo: 'efectivo',
+      origen: 'manual',
+      anulado: false,
+      creadoEn: '2026-10-29T10:30:00.000Z',
+      createdBy: AUTHORIZED_ADMIN_UID,
+    },
+    resultadoEsperado: 'ALLOW',
+    motivoSeguridad: 'Categoría válida para egreso, monto positivo y trazabilidad completa.',
+  },
+  {
+    id: 'SEC-56',
+    categoria: 'VALIDATION',
+    descripcion: 'Rechazo de movimiento de caja con monto <= 0 (cero o negativo)',
+    coleccion: 'movimientos_caja',
+    documentId: 'CAJA_monto_cero',
+    operacion: 'create',
+    usuario: { autenticado: true, uid: AUTHORIZED_ADMIN_UID },
+    payload: {
+      id: 'CAJA_monto_cero',
+      tipo: 'egreso',
+      categoria: 'insumos',
+      concepto: 'Bolsas y perchas',
+      monto: 0,
+      fecha: '2026-10-29T10:30:00.000Z',
+      metodo: 'efectivo',
+      origen: 'manual',
+      creadoEn: '2026-10-29T10:30:00.000Z',
+    },
+    resultadoEsperado: 'DENY',
+    motivoSeguridad: 'isValidMovimientoCaja exige estrictamente monto > 0.',
+  },
+  {
+    id: 'SEC-57',
+    categoria: 'VALIDATION',
+    descripcion: 'Rechazo de categoría incompatible (categoría de egreso aplicada a un ingreso)',
+    coleccion: 'movimientos_caja',
+    documentId: 'CAJA_cat_incompatible',
+    operacion: 'create',
+    usuario: { autenticado: true, uid: AUTHORIZED_ADMIN_UID },
+    payload: {
+      id: 'CAJA_cat_incompatible',
+      tipo: 'ingreso',
+      categoria: 'productos_limpieza',
+      concepto: 'Inconsistente',
+      monto: 5000,
+      fecha: '2026-10-29T10:30:00.000Z',
+      metodo: 'efectivo',
+      origen: 'manual',
+      creadoEn: '2026-10-29T10:30:00.000Z',
+    },
+    resultadoEsperado: 'DENY',
+    motivoSeguridad: 'Las reglas vinculan estrictamente las categorías permitidas por tipo ingreso/egreso.',
+  },
+  {
+    id: 'SEC-58',
+    categoria: 'IMMUTABILITY',
+    descripcion: 'Rechazo de corrección de movimiento de caja sin historialCambios obligatorio',
+    coleccion: 'movimientos_caja',
+    documentId: 'CAJA_egreso_1',
+    operacion: 'update',
+    usuario: { autenticado: true, uid: AUTHORIZED_ADMIN_UID },
+    existingData: {
+      id: 'CAJA_egreso_1',
+      tipo: 'egreso',
+      categoria: 'productos_limpieza',
+      concepto: 'Jabón líquido',
+      monto: 12000,
+      fecha: '2026-10-29T10:30:00.000Z',
+      metodo: 'efectivo',
+      origen: 'manual',
+      anulado: false,
+      creadoEn: '2026-10-29T10:30:00.000Z',
+    },
+    payload: {
+      id: 'CAJA_egreso_1',
+      tipo: 'egreso',
+      categoria: 'productos_limpieza',
+      concepto: 'Jabón líquido corregido',
+      monto: 11500,
+      fecha: '2026-10-29T10:30:00.000Z',
+      metodo: 'efectivo',
+      origen: 'manual',
+      anulado: false,
+      creadoEn: '2026-10-29T10:30:00.000Z',
+      historialCambios: [], // Vacío -> debe fallar
+    },
+    resultadoEsperado: 'DENY',
+    motivoSeguridad: 'Toda edición exige al menos 1 registro en historialCambios con motivo.',
+  },
+  {
+    id: 'SEC-59',
+    categoria: 'IMMUTABILITY',
+    descripcion: 'Anulación válida de movimiento de caja con motivo, timestamp, UID e historialCambios',
+    coleccion: 'movimientos_caja',
+    documentId: 'CAJA_egreso_1',
+    operacion: 'update',
+    usuario: { autenticado: true, uid: AUTHORIZED_ADMIN_UID },
+    existingData: {
+      id: 'CAJA_egreso_1',
+      tipo: 'egreso',
+      categoria: 'productos_limpieza',
+      concepto: 'Jabón líquido',
+      monto: 12000,
+      fecha: '2026-10-29T10:30:00.000Z',
+      metodo: 'efectivo',
+      origen: 'manual',
+      anulado: false,
+      creadoEn: '2026-10-29T10:30:00.000Z',
+    },
+    payload: {
+      id: 'CAJA_egreso_1',
+      tipo: 'egreso',
+      categoria: 'productos_limpieza',
+      concepto: 'Jabón líquido',
+      monto: 12000,
+      fecha: '2026-10-29T10:30:00.000Z',
+      metodo: 'efectivo',
+      origen: 'manual',
+      anulado: true,
+      motivoAnulacion: 'Compra cancelada y devuelta',
+      anuladoAt: '2026-10-29T11:00:00.000Z',
+      anuladoPor: AUTHORIZED_ADMIN_UID,
+      creadoEn: '2026-10-29T10:30:00.000Z',
+      historialCambios: [
+        { fecha: '2026-10-29T11:00:00.000Z', campo: 'anulacion', valorAnterior: 'vigente', valorNuevo: 'anulado', motivo: 'Compra cancelada y devuelta' },
+      ],
+    },
+    resultadoEsperado: 'ALLOW',
+    motivoSeguridad: 'Anulación auditada con motivo válido, UID autorizado e historial.',
+  },
+  {
+    id: 'SEC-60',
+    categoria: 'IMMUTABILITY',
+    descripcion: 'Prohibición de borrado físico en movimientos_caja',
+    coleccion: 'movimientos_caja',
+    documentId: 'CAJA_egreso_1',
+    operacion: 'delete',
+    usuario: { autenticado: true, uid: AUTHORIZED_ADMIN_UID },
+    resultadoEsperado: 'DENY',
+    motivoSeguridad: 'allow delete: if false; exige anulación lógica sin eliminar registros.',
+  },
+  {
+    id: 'SEC-61',
+    categoria: 'VALIDATION',
+    descripcion: 'Apertura válida de sesión de caja con saldo inicial >= 0',
+    coleccion: 'sesiones_caja',
+    documentId: 'SES_2026_10_29',
+    operacion: 'create',
+    usuario: { autenticado: true, uid: AUTHORIZED_ADMIN_UID },
+    payload: {
+      id: 'SES_2026_10_29',
+      fecha: '2026-10-29',
+      horaApertura: '2026-10-29T08:30:00.000Z',
+      saldoInicialEfectivo: 15000,
+      cerrada: false,
+      createdBy: AUTHORIZED_ADMIN_UID,
+    },
+    resultadoEsperado: 'ALLOW',
+    motivoSeguridad: 'Apertura válida por administradora autorizada.',
+  },
+  {
+    id: 'SEC-62',
+    categoria: 'IMMUTABILITY',
+    descripcion: 'Bloqueo de modificación de sesión de caja ya cerrada (inmutabilidad de arqueo)',
+    coleccion: 'sesiones_caja',
+    documentId: 'SES_2026_10_29',
+    operacion: 'update',
+    usuario: { autenticado: true, uid: AUTHORIZED_ADMIN_UID },
+    existingData: {
+      id: 'SES_2026_10_29',
+      fecha: '2026-10-29',
+      horaApertura: '2026-10-29T08:30:00.000Z',
+      saldoInicialEfectivo: 15000,
+      cerrada: true,
+      horaCierre: '2026-10-29T20:00:00.000Z',
+      arqueoRealEfectivo: 42000,
+    },
+    payload: {
+      id: 'SES_2026_10_29',
+      fecha: '2026-10-29',
+      horaApertura: '2026-10-29T08:30:00.000Z',
+      saldoInicialEfectivo: 5000, // Intento de alterar saldo histórico cerrado
+      cerrada: true,
+    },
+    resultadoEsperado: 'DENY',
+    motivoSeguridad: 'resource.data.cerrada != true protege cierres arqueados.',
+  },
+  {
+    id: 'SEC-63',
+    categoria: 'IMMUTABILITY',
+    descripcion: 'Prohibición de borrado físico en sesiones_caja',
+    coleccion: 'sesiones_caja',
+    documentId: 'SES_2026_10_29',
+    operacion: 'delete',
+    usuario: { autenticado: true, uid: AUTHORIZED_ADMIN_UID },
+    resultadoEsperado: 'DENY',
+    motivoSeguridad: 'allow delete: if false; resguarda aperturas y cierres de caja.',
+  },
+  {
+    id: 'SEC-64',
+    categoria: 'AUTH',
+    descripcion: 'Usuario no autorizado intenta leer movimientos_caja',
+    coleccion: 'movimientos_caja',
+    documentId: 'CAJA_egreso_1',
+    operacion: 'read',
+    usuario: { autenticado: true, uid: 'otro_uid_no_autorizado' },
+    resultadoEsperado: 'DENY',
+    motivoSeguridad: 'Solo la administradora autorizada puede leer información financiera.',
   },
 ];
 

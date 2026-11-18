@@ -3,7 +3,7 @@ import { Loader2 } from 'lucide-react';
 
 export const AuthLoadingScreen: React.FC = () => {
   return (
-    <div className="h-screen w-screen flex flex-col items-center justify-center bg-white text-neutral-900 font-sans select-none">
+    <div className="min-h-[100dvh] w-full px-4 flex flex-col items-center justify-center bg-white text-neutral-900 font-sans select-none">
       <div className="flex flex-col items-center gap-4">
         <div className="w-12 h-12 rounded-2xl bg-neutral-900 text-white flex items-center justify-center font-black text-lg tracking-tight shadow-sm animate-pulse">
           LG

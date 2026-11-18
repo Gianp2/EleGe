@@ -6,15 +6,6 @@
     --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   }
 
-  html, body, #root {
-    width: 100%;
-    min-width: 0;
-    max-width: 100%;
-    box-sizing: border-box;
-  }
-
-  *, *::before, *::after { box-sizing: border-box; }
-
   body {
     font-family: var(--font-sans);
     color: #171717;
@@ -26,6 +17,18 @@
   code, pre, .font-mono, [data-mono] {
     font-family: var(--font-mono);
   }
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 /* Scrollbar sutil y moderno */
@@ -54,12 +57,17 @@
     width: 100% !important;
   }
 
+  /* Ocultar elementos marcados como no imprimibles */
+  .no-print {
+    display: none !important;
+  }
+
   /* Ocultar todos los elementos generales */
   body * {
     visibility: hidden !important;
   }
 
-  /* Mostrar exclusivamente el contenedor térmico imprimible */
+  /* Mostrar exclusivamente el contenedor imprimible */
   .printable-area, .printable-area * {
     visibility: visible !important;
   }
@@ -68,6 +76,7 @@
     position: absolute !important;
     left: 0 !important;
     top: 0 !important;
+    width: 100% !important;
     margin: 0 auto !important;
     box-shadow: none !important;
     background: white !important;
@@ -75,7 +84,7 @@
   }
 
   @page {
-    margin: 0.15cm;
+    margin: 0.25cm;
     size: auto;
   }
 }

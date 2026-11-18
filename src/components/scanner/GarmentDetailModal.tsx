@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { Prenda, Pedido, Cliente, EstadoPrenda } from '../../types';
 import { Modal } from '../common/Modal';
+import { NumericInput } from '../common/NumericInput';
 import { StatusBadge } from '../common/StatusBadge';
 import {
   formatMoneda,
@@ -282,12 +283,11 @@ export const GarmentDetailModal: React.FC<GarmentDetailModalProps> = ({
                 <label className="block text-[11px] text-amber-900 font-bold mb-1">
                   Monto a cobrar ahora
                 </label>
-                <input
-                  type="number"
-                  min="0"
+                <NumericInput
+                  min={0}
                   max={pedido.saldoPendiente}
                   value={montoCobroInmediato}
-                  onChange={(e) => setMontoCobroInmediato(Number(e.target.value))}
+                  onChange={(val) => setMontoCobroInmediato(val)}
                   className="w-full bg-white border border-amber-300 rounded-xl px-3 py-1.5 text-xs text-neutral-900 font-mono font-bold"
                 />
               </div>
@@ -307,25 +307,25 @@ export const GarmentDetailModal: React.FC<GarmentDetailModalProps> = ({
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-1">
+            <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-end gap-2 pt-1">
               <button
                 type="button"
                 onClick={() => setMostrarAlertaEntregaConSaldo(false)}
-                className="px-3 py-1.5 text-xs font-semibold text-neutral-600 hover:text-neutral-900 cursor-pointer"
+                className="w-full sm:w-auto px-3 py-2 text-xs font-semibold text-neutral-600 hover:text-neutral-900 cursor-pointer"
               >
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={() => ejecutarCambioEstado('entregado')}
-                className="px-3 py-1.5 text-xs font-semibold text-amber-900 hover:bg-amber-100 border border-amber-300 rounded-xl cursor-pointer"
+                className="w-full sm:w-auto px-3 py-2 text-xs font-semibold text-amber-900 hover:bg-amber-100 border border-amber-300 rounded-xl cursor-pointer"
               >
                 Entregar SIN cobrar saldo
               </button>
               <button
                 type="button"
                 onClick={handleCobrarYEntregar}
-                className="px-4 py-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-xs cursor-pointer active:scale-98"
+                className="w-full sm:w-auto px-4 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-xs cursor-pointer"
               >
                 Cobrar {formatMoneda(montoCobroInmediato)} y Entregar
               </button>
@@ -411,30 +411,30 @@ export const GarmentDetailModal: React.FC<GarmentDetailModalProps> = ({
         </div>
 
         {/* BOTONES DE IMPRESIÓN Y ACCIONES */}
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-neutral-200">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-2 border-t border-neutral-200">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={() => onOpenTicket(pedido, prenda)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-neutral-800 bg-neutral-100 hover:bg-neutral-200 border border-neutral-300 rounded-xl transition-colors cursor-pointer"
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 text-xs font-bold text-neutral-800 bg-neutral-100 hover:bg-neutral-200 border border-neutral-300 rounded-xl transition-colors cursor-pointer whitespace-nowrap"
             >
-              <Printer className="w-4 h-4" />
-              <span>Etiqueta QR Prenda</span>
+              <Printer className="w-4 h-4 shrink-0" />
+              <span>Etiqueta QR</span>
             </button>
             <button
               type="button"
               onClick={() => onOpenTicket(pedido)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-neutral-800 bg-neutral-100 hover:bg-neutral-200 border border-neutral-300 rounded-xl transition-colors cursor-pointer"
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 text-xs font-bold text-neutral-800 bg-neutral-100 hover:bg-neutral-200 border border-neutral-300 rounded-xl transition-colors cursor-pointer whitespace-nowrap"
             >
-              <Printer className="w-4 h-4" />
-              <span>Ticket Térmico Cliente</span>
+              <Printer className="w-4 h-4 shrink-0" />
+              <span>Ticket Cliente</span>
             </button>
           </div>
 
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-xs font-bold text-neutral-600 hover:text-neutral-900 bg-neutral-100 hover:bg-neutral-200 rounded-xl transition-colors cursor-pointer"
+            className="w-full sm:w-auto px-4 py-2.5 text-xs font-bold text-neutral-700 hover:text-neutral-900 bg-neutral-100 hover:bg-neutral-200 rounded-xl transition-colors cursor-pointer"
           >
             Cerrar ficha
           </button>

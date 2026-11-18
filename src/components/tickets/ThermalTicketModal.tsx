@@ -86,43 +86,44 @@ export const ThermalTicketModal: React.FC<ThermalTicketModalProps> = ({
     >
       <div className="space-y-4">
         {/* Controles de Vista e Impresión */}
-        <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-neutral-50 rounded-2xl border border-neutral-200 no-print">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center justify-between gap-2.5 p-3 bg-neutral-50 rounded-2xl border border-neutral-200 no-print">
           {/* Selector de Tipo */}
-          <div className="flex items-center gap-1 p-1 bg-neutral-200 rounded-xl">
+          <div className="grid grid-cols-2 sm:flex items-center gap-1 p-1 bg-neutral-200 rounded-xl">
             <button
               type="button"
               onClick={() => setModo('ticket_cliente')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+              className={`flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
                 modo === 'ticket_cliente'
                   ? 'bg-white text-neutral-900 shadow-xs'
                   : 'text-neutral-600 hover:text-neutral-900'
               }`}
             >
-              <FileText className="w-3.5 h-3.5" />
+              <FileText className="w-3.5 h-3.5 shrink-0" />
               <span>Ticket Cliente</span>
             </button>
             <button
               type="button"
               onClick={() => setModo('etiquetas_prendas')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+              className={`flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
                 modo === 'etiquetas_prendas'
                   ? 'bg-white text-neutral-900 shadow-xs'
                   : 'text-neutral-600 hover:text-neutral-900'
               }`}
             >
-              <Tag className="w-3.5 h-3.5" />
-              <span>
-                {prendaIndividual ? 'Etiqueta de Prenda' : 'Etiquetas de Prendas'}
+              <Tag className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">
+                {prendaIndividual ? 'Etiqueta' : 'Etiquetas'}
               </span>
             </button>
           </div>
 
           {/* Ancho térmico & Botón Imprimir */}
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
             <select
               value={anchoPapel}
               onChange={(e) => setAnchoPapel(e.target.value as any)}
-              className="bg-white border border-neutral-300 text-xs font-semibold text-neutral-800 rounded-xl px-3 py-1.5 outline-none shadow-2xs"
+              aria-label="Ancho de rollo térmico"
+              className="bg-white border border-neutral-300 text-xs font-semibold text-neutral-800 rounded-xl px-3 py-2 outline-none shadow-2xs cursor-pointer"
             >
               <option value="80mm">Rollo 80 mm (Estándar)</option>
               <option value="58mm">Rollo 58 mm (Compacto)</option>
@@ -131,7 +132,7 @@ export const ThermalTicketModal: React.FC<ThermalTicketModalProps> = ({
             <button
               type="button"
               onClick={handleImprimir}
-              className="flex items-center gap-1.5 px-4 py-2 bg-neutral-900 text-white font-bold text-xs rounded-xl hover:bg-neutral-800 transition-all cursor-pointer shadow-xs active:scale-98"
+              className="flex items-center justify-center gap-1.5 px-4 py-2 bg-neutral-900 text-white font-bold text-xs rounded-xl hover:bg-neutral-800 transition-colors cursor-pointer shadow-xs whitespace-nowrap"
             >
               <Printer className="w-4 h-4" />
               <span>Imprimir</span>
